@@ -87,17 +87,53 @@ const CustomerList = () => {
     }
   };
 
+  const handleDelete = async (id) => {
+    if (window.confirm("ဤ Customer စာရင်းကို ဖျက်ရန် သေချာပါသလား?")) {
+      try {
+        await API.delete(`/customers/${id}`);
+        alert("ဖျက်သိမ်းပြီးပါပြီ။");
+        fetchData(); // List ကို update လုပ်ရန်
+      } catch (err) {
+        console.error("Delete Error:", err);
+        alert("ဖျက်၍မရပါ။ Backend နှင့် ချိတ်ဆက်မှု စစ်ဆေးပါ။");
+      }
+    }
+  };
+
+  const handleSearch = (e) => {
+    if (e.key === 'Enter') {
+      fetchData();
+    }
+  };
+
   const inputStyle = "w-full h-12 px-4 text-base font-bold border-2 border-slate-400 rounded-xl bg-white focus:border-blue-600 outline-none transition-all shadow-sm block text-slate-800";
 
   return (
-    <div className="p-4 text-left">
+   <div className="p-4 text-left font-sans">
       {!showForm ? (
-        <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden font-sans">
-          <div className="p-6 border-b flex justify-between items-center bg-slate-50/50">
+        <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
+          {/* Header & Search Bar */}
+          <div className="p-6 border-b flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50/50">
             <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Customer Records</h1>
-            <button onClick={() => handleOpenForm()} className="bg-blue-600 text-white px-6 py-3 rounded-xl flex items-center gap-2 hover:bg-blue-700 shadow-lg font-bold transition-all active:scale-95">
-              <Plus size={20} /> ADD NEW
-            </button>
+            
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              {/* Search Input ပြန်ထည့်ခြင်း */}
+              <div className="relative w-full md:w-80">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <input 
+                  type="text"
+                  placeholder="Search by ID, Name or Phone..."
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border-2 border-slate-200 rounded-xl focus:border-blue-600 outline-none font-bold text-sm transition-all"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={handleSearch}
+                />
+              </div>
+              
+              <button onClick={() => handleOpenForm()} className="bg-blue-600 text-white px-6 py-3 rounded-xl flex items-center gap-2 hover:bg-blue-700 shadow-lg font-bold transition-all active:scale-95 whitespace-nowrap">
+                <Plus size={20} /> ADD NEW
+              </button>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -108,45 +144,69 @@ const CustomerList = () => {
                   <th className="px-6 py-4 text-left">Phones</th>
                   <th className="px-6 py-4 text-left">Tech (SN/DN/GPS)</th>
                   <th className="px-6 py-4 text-left">Location / Address</th>
+                  <th className="px-6 py-4 text-center">Status</th>
                   <th className="px-6 py-4 text-center">In/Exp Dates</th>
                   <th className="px-6 py-4 text-center">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {customers.map((c) => (
-                  <tr key={c.id} className="hover:bg-blue-50/30">
+                  <tr key={c.id} className="hover:bg-blue-50/30 border-b border-slate-50 transition-colors">
+                    {/* ... (Customer, Phones columns မူလအတိုင်း) ... */}
+                    
                     <td className="px-6 py-4">
                       <div className="font-bold text-slate-900 leading-tight">{c.name}</div>
                       <div className="text-[10px] text-blue-600 font-mono font-bold uppercase">{c.customerId}</div>
                       <div className="mt-1 flex gap-1 text-[9px] font-black uppercase">
-                        <span className="px-1.5 py-0.5 bg-blue-600 text-white rounded">{c.packagePlan?.planName} ({c.packagePlan?.bandwidth})</span>
+                        <span className="px-1.5 py-0.5 bg-blue-600 text-white rounded">
+                          {c.packagePlan?.planName} ({c.packagePlan?.bandwidth})
+                        </span>
                       </div>
                     </td>
+
                     <td className="px-6 py-4 font-bold text-slate-700">
                       <div className="flex items-center gap-1.5"><Phone size={13} className="text-blue-500"/> {c.primaryPhone}</div>
-                      {c.secondaryPhone && <div className="text-slate-400 text-[11px] ml-5">{c.secondaryPhone}</div>}
+                      {c.secondaryPhone && <div className="text-slate-400 text-[10px] ml-5">{c.secondaryPhone}</div>}
                     </td>
+
+                    {/* Tech Column with GPS Link */}
                     <td className="px-6 py-4 space-y-1 text-[11px]">
-                      <div className="font-mono">SN: <span className="text-indigo-600 font-bold">{c.onuSerial || '---'}</span></div>
-                      <div className="font-mono">DN: {c.dnsn || '---'}</div>
+                      <div className="font-mono text-slate-500">ONU-Info: <span className="text-indigo-600 font-bold">{c.onuSerial || '---'}</span> </div>
+                      <div className="font-mono text-slate-500"> DNSN: <span className="text-slate-700 font-bold">{c.dnsn || '---'}</span> </div>
                       {c.gpsCoords && (
-                        <a href={`https://www.google.com/maps?q=${c.gpsCoords}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-emerald-600 font-black text-[9px] mt-1 bg-emerald-50 px-2 py-0.5 rounded w-fit">
+                        <a 
+                          href={`https://www.google.com/maps?q=${encodeURIComponent(c.gpsCoords)}`} 
+                          target="_blank" rel="noreferrer" 
+                          className="flex items-center gap-1 text-emerald-600 font-black text-[9px] mt-1 bg-emerald-50 px-2 py-0.5 rounded w-fit border border-emerald-100"
+                        >
                            <MapPin size={10}/> VIEW ON MAP
                         </a>
                       )}
                     </td>
+
                     <td className="px-6 py-4 text-slate-800">
-                      <div className="font-bold">{c.quarter?.qtrName || 'No Qtr'}</div>
-                      <div className="text-[11px] text-slate-500 line-clamp-1 italic" title={c.address}>{c.address || 'No Address'}</div>
+                      <div className="font-bold text-slate-900">{c.quarter?.qtrName || 'No Quarter'}</div>
+                      <div className="text-[11px] text-slate-500 line-clamp-1 italic">{c.address || 'No Address'}</div>
                     </td>
-                    <td className="px-6 py-4 text-center text-[10px] font-black space-y-1">
-                      <div className="text-slate-400 font-medium">IN: {c.installDate || '---'}</div>
-                      <div className="text-red-500 uppercase">EXP: {c.expiryDate || '---'}</div>
+
+                    <td className="px-6 py-4 text-center">
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter ${
+                        c.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                      }`}>
+                        {c.status}
+                      </span>
                     </td>
+
+                    <td className="px-6 py-4 text-center text-[10px] font-black space-y-0.5">
+                      <div className="text-slate-400">IN: {c.installDate || '---'}</div>
+                      <div className="text-red-500">EXP: {c.expiryDate || '---'}</div>
+                    </td>
+
                     <td className="px-6 py-4 text-center">
                       <div className="flex justify-center gap-2">
                         <button onClick={() => handleOpenForm(c)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"><Edit size={16} /></button>
-                        <button className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></button>
+                        {/* Delete Button အလုပ်လုပ်စေရန် ပြင်ဆင်ခြင်း */}
+                        <button onClick={() => handleDelete(c.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></button>
                       </div>
                     </td>
                   </tr>
@@ -155,7 +215,7 @@ const CustomerList = () => {
             </table>
           </div>
         </div>
-      ) : (
+      ): (
         <div className="max-w-5xl mx-auto bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in duration-300 font-sans">
           <div className="p-8 bg-slate-900 text-white flex justify-between items-center">
              <h2 className="text-2xl font-black uppercase tracking-tight">{isEditing ? 'Update Records' : 'New Registration'}</h2>
