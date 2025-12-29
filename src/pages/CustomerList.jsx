@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import API from '../api/axios';
-import { Plus, Edit, Trash2, Search, X, MapPin, Database, Wifi, Phone, CalendarDays, ExternalLink, Map } from 'lucide-react';
+import { 
+  Plus, Edit, Trash2, Search, X, MapPin, Database, Phone, 
+  CalendarDays, Filter, RefreshCcw, Wifi, Globe 
+} from 'lucide-react';
 
 const CustomerList = () => {
   const [customers, setCustomers] = useState([]);
@@ -10,7 +13,11 @@ const CustomerList = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Backend Entity field names အတိုင်း အတိအကျဖြစ်ရမည်
+  // Date Search States
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [isFiltering, setIsFiltering] = useState(false);
+
   const [formData, setFormData] = useState({
     id: null, customerId: '', name: '', primaryPhone: '', secondaryPhone: '',
     address: '', dnsn: '', onuSerial: '', gpsCoords: '', status: 'ACTIVE',
@@ -23,13 +30,37 @@ const CustomerList = () => {
 
   const fetchData = async () => {
     try {
+      setIsFiltering(false);
       const url = searchTerm ? `/customers?search=${searchTerm}` : '/customers';
       const res = await API.get(url);
       setCustomers(res.data);
       const [pRes, qRes] = await Promise.all([API.get('/plans'), API.get('/quarters')]);
       setPlans(pRes.data);
       setQuarters(qRes.data);
-    } catch (err) { console.error("Error:", err); }
+    } catch (err) { console.error("Fetch Error:", err); }
+  };
+
+  const handleDateFilter = async () => {
+    if (!startDate || !endDate) {
+      alert("Please select both dates");
+      return;
+    }
+    try {
+      setIsFiltering(true);
+      // 400 Error မတက်အောင် Params အနေနဲ့ သေချာပို့ပါတယ်
+      const res = await API.get(`/customers/search-dates`, {
+        params: { start: startDate, end: endDate }
+      });
+      setCustomers(res.data);
+    } catch (err) {
+      console.error("Filter error:", err);
+      alert("Data search failed. Check date formats.");
+    }
+  };
+
+  const resetFilters = () => {
+    setStartDate(''); setEndDate(''); setSearchTerm('');
+    fetchData();
   };
 
   const handleOpenForm = (cust = null) => {
@@ -47,281 +78,296 @@ const CustomerList = () => {
     setShowForm(true);
   };
 
-  // Logic အမှန်ဖြင့် ပြင်ဆင်ထားသော handleSubmit
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validation စစ်ဆေးခြင်း
-    const qtrIdValue = formData.quarter.qtrId;
-    const planIdValue = formData.packagePlan.planId;
-
-    if (!qtrIdValue || qtrIdValue === "") {
-      alert("ကျေးဇူးပြု၍ ရပ်ကွက် ကို ရွေးချယ်ပေးပါ");
+    if (!formData.quarter.qtrId || !formData.packagePlan.planId) {
+      alert("Please select Quarter and Plan!");
       return;
     }
-
-    if (!planIdValue || planIdValue === "") {
-      alert("Package Plan ကို ရွေးချယ်ပေးရန် လိုအပ်ပါသည်။");
-      return;
-    }
-
     try {
-      // Postman Style Payload
       const payload = {
         ...formData,
-        quarter: { qtrId: parseInt(qtrIdValue) },
-        packagePlan: { planId: parseInt(planIdValue) } 
+        quarter: { qtrId: parseInt(formData.quarter.qtrId) },
+        packagePlan: { planId: parseInt(formData.packagePlan.planId) } 
       };
-
-      console.log("Submitting Payload:", payload);
-
-      const response = await API.post('/customers', payload);
-      if (response.status === 200 || response.status === 201) {
-        setShowForm(false);
-        fetchData();
-        alert("အောင်မြင်စွာ သိမ်းဆည်းပြီးပါပြီ။");
-      }
+      await API.post('/customers', payload);
+      setShowForm(false);
+      fetchData();
+      alert("Saved Successfully!");
     } catch (err) {
-      console.error("Save Error:", err.response?.data);
-      alert("သိမ်းဆည်း၍မရပါ။ " + (err.response?.data?.message || "Data format လွဲနေပါသည်။"));
+      alert("Error: " + (err.response?.data?.message || "Check data format"));
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("ဤ Customer စာရင်းကို ဖျက်ရန် သေချာပါသလား?")) {
-      try {
-        await API.delete(`/customers/${id}`);
-        alert("ဖျက်သိမ်းပြီးပါပြီ။");
-        fetchData(); // List ကို update လုပ်ရန်
-      } catch (err) {
-        console.error("Delete Error:", err);
-        alert("ဖျက်၍မရပါ။ Backend နှင့် ချိတ်ဆက်မှု စစ်ဆေးပါ။");
-      }
-    }
-  };
-
-  const handleSearch = (e) => {
-    if (e.key === 'Enter') {
+    if (window.confirm("Are you sure?")) {
+      await API.delete(`/customers/${id}`);
       fetchData();
     }
   };
 
-  const inputStyle = "w-full h-12 px-4 text-base font-bold border-2 border-slate-400 rounded-xl bg-white focus:border-blue-600 outline-none transition-all shadow-sm block text-slate-800";
+  const inputStyle = "w-full h-11 px-4 text-sm font-bold border-2 border-slate-200 rounded-xl bg-white focus:border-blue-600 outline-none transition-all block text-slate-800";
 
   return (
-   <div className="p-4 text-left font-sans">
+   <div className="p-4 text-left font-sans max-w-[1600px] mx-auto">
       {!showForm ? (
-        <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
-          {/* Header & Search Bar */}
-          <div className="p-6 border-b flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50/50">
-            <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Customer Records</h1>
-            
-            <div className="flex items-center gap-3 w-full md:w-auto">
-              {/* Search Input ပြန်ထည့်ခြင်း */}
-              <div className="relative w-full md:w-80">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input 
-                  type="text"
-                  placeholder="Search by ID, Name or Phone..."
-                  className="w-full pl-10 pr-4 py-2.5 bg-white border-2 border-slate-200 rounded-xl focus:border-blue-600 outline-none font-bold text-sm transition-all"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyDown={handleSearch}
-                />
-              </div>
-              
-              <button onClick={() => handleOpenForm()} className="bg-blue-600 text-white px-6 py-3 rounded-xl flex items-center gap-2 hover:bg-blue-700 shadow-lg font-bold transition-all active:scale-95 whitespace-nowrap">
-                <Plus size={20} /> ADD NEW
-              </button>
+        <div className="space-y-6">
+          {/* Header & Filter Bar (မူလအတိုင်း ရှင်းရှင်းလင်းလင်း ထားထားပါတယ်) */}
+          <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col lg:flex-row justify-between items-center gap-6">
+             <div className="flex items-center gap-4">
+                <div className="p-3 bg-blue-600 rounded-2xl text-white shadow-lg"><Database size={24}/></div>
+                <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Customer Records</h1>
+             </div>
+             
+             <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-200">
+                   <CalendarDays size={16} className="ml-2 text-slate-400"/>
+                   <input type="date" className="bg-transparent border-none outline-none font-bold text-[11px]" value={startDate} onChange={e => setStartDate(e.target.value)} />
+                   <span className="text-slate-300 text-[10px] font-bold">TO</span>
+                   <input type="date" className="bg-transparent border-none outline-none font-bold text-[11px]" value={endDate} onChange={e => setEndDate(e.target.value)} />
+                   <button onClick={handleDateFilter} className="bg-slate-900 text-white p-2 rounded-xl hover:bg-blue-600 transition-all"><Filter size={14}/></button>
+                </div>
+                <button onClick={resetFilters} className="p-3 bg-slate-100 text-slate-500 rounded-xl hover:bg-slate-200"><RefreshCcw size={18}/></button>
+                <button onClick={() => handleOpenForm()} className="bg-blue-600 text-white px-6 py-3 rounded-2xl flex items-center gap-2 hover:bg-blue-700 shadow-lg font-black uppercase text-xs tracking-widest transition-all">
+                   <Plus size={18} /> Add New
+                </button>
+             </div>
+          </div>
+
+          {/* Table Area */}
+          <div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm">
+             {/* Search Input */}
+             <div className="p-4 border-b bg-slate-50/50">
+                <div className="relative max-w-md">
+                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                   <input type="text" placeholder="Search ID, Name or Phone..." className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-blue-600 font-bold text-sm" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} onKeyDown={e => e.key === 'Enter' && fetchData()} />
+                </div>
+             </div>
+             <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                   <thead className="bg-slate-50 text-slate-500 uppercase text-[10px] font-black border-b">
+                      <tr>
+                         <th className="px-6 py-4 text-left">Customer / Plan</th>
+                         <th className="px-6 py-4 text-left">Contact</th>
+                         <th className="px-6 py-4 text-left">Hardware (SN/DN)</th>
+                         <th className="px-6 py-4 text-left">Location</th>
+                         <th className="px-6 py-4 text-center">Status</th>
+                         <th className="px-6 py-4 text-center">Actions</th>
+                      </tr>
+                   </thead>
+                   <tbody className="divide-y divide-slate-100 italic">
+  {customers.map((c) => {
+    // Plan အလိုက် Badge အရောင်သတ်မှတ်ခြင်း
+    const getPlanColor = (planName) => {
+      const name = planName?.toUpperCase() || '';
+      if (name.includes('VIP')) return 'bg-purple-600';
+      if (name.includes('B2B')) return 'bg-blue-700';
+      if (name.includes('HOME')) return 'bg-blue-500 text-white';
+      return 'bg-slate-500';
+    };
+
+    return (
+      <tr key={c.id} className="hover:bg-blue-50/30 group transition-colors border-b border-slate-50">
+        
+        {/* ၁။ CUSTOMER & PLAN (အမည် နှင့် Bandwidth အပြည့်အစုံ) */}
+        <td className="px-6 py-5">
+          <div className="font-black text-slate-800 text-base leading-tight">{c.name}</div>
+          <div className="text-[10px] text-blue-600 font-mono font-bold uppercase">{c.customerId}</div>
+          <div className="mt-2 flex flex-wrap gap-1">
+            <span className={`px-2.5 py-0.5 rounded-[4px] text-[9px] font-black uppercase tracking-tighter text-white ${getPlanColor(c.packagePlan?.planName)}`}>
+              {/* ဤနေရာတွင် Plan Name နှင့် Bandwidth ကို တွဲပြထားပါသည် */}
+              {c.packagePlan?.planName} ({c.packagePlan?.bandwidth || 'N/A'})
+            </span>
+          </div>
+        </td>
+
+        {/* ၂။ CONTACT INFO (Secondary Phone အပါအဝင်) */}
+        <td className="px-6 py-5">
+          <div className="flex items-center gap-1.5 font-bold text-slate-700 text-xs">
+            <Phone size={13} className="text-blue-500"/> {c.primaryPhone}
+          </div>
+          {/* Secondary Phone ရှိလျှင် အောက်မှ ပြပေးမည် */}
+          {c.secondaryPhone && (
+            <div className="text-slate-500 font-black ml-5 text-[10px] mt-1 flex items-center gap-1">
+              <span className="opacity-50 font-bold uppercase text-[8px]">Sec:</span> {c.secondaryPhone}
             </div>
+          )}
+        </td>
+
+        {/* ၃။ TECH SPECS (SN/DN) */}
+        <td className="px-6 py-5 text-[11px] font-mono">
+          <div className="text-slate-400">SN: <span className="text-slate-700 font-bold">{c.onuSerial || '---'}</span></div>
+          <div className="text-slate-400">DN: <span className="text-slate-700 font-bold">{c.dnsn || '---'}</span></div>
+        </td>
+
+        {/* ၄။ LOCATION & GOOGLE EARTH */}
+        <td className="px-6 py-5">
+          <div className="text-xs font-black text-slate-800 flex items-center gap-1">
+            <MapPin size={12} className="text-red-500"/> {c.quarter?.qtrName}
           </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-100 text-slate-500 uppercase text-[10px] font-black border-b">
-                <tr>
-                  <th className="px-6 py-4 text-left">Customer & Plan</th>
-                  <th className="px-6 py-4 text-left">Phones</th>
-                  <th className="px-6 py-4 text-left">Tech (SN/DN/GPS)</th>
-                  <th className="px-6 py-4 text-left">Location / Address</th>
-                  <th className="px-6 py-4 text-center">Status</th>
-                  <th className="px-6 py-4 text-center">In/Exp Dates</th>
-                  <th className="px-6 py-4 text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {customers.map((c) => (
-                  <tr key={c.id} className="hover:bg-blue-50/30 border-b border-slate-50 transition-colors">
-                    {/* ... (Customer, Phones columns မူလအတိုင်း) ... */}
-                    
-                    <td className="px-6 py-4">
-                      <div className="font-bold text-slate-900 leading-tight">{c.name}</div>
-                      <div className="text-[10px] text-blue-600 font-mono font-bold uppercase">{c.customerId}</div>
-                      <div className="mt-1 flex gap-1 text-[9px] font-black uppercase">
-                        <span className="px-1.5 py-0.5 bg-blue-600 text-white rounded">
-                          {c.packagePlan?.planName} ({c.packagePlan?.bandwidth})
-                        </span>
-                      </div>
-                    </td>
-
-                    <td className="px-6 py-4 font-bold text-slate-700">
-                      <div className="flex items-center gap-1.5"><Phone size={13} className="text-blue-500"/> {c.primaryPhone}</div>
-                      {c.secondaryPhone && <div className="text-slate-400 text-[10px] ml-5">{c.secondaryPhone}</div>}
-                    </td>
-
-                    {/* Tech Column with GPS Link */}
-                    <td className="px-6 py-4 space-y-1 text-[11px]">
-                      <div className="font-mono text-slate-500">ONU-Info: <span className="text-indigo-600 font-bold">{c.onuSerial || '---'}</span> </div>
-                      <div className="font-mono text-slate-500"> DNSN: <span className="text-slate-700 font-bold">{c.dnsn || '---'}</span> </div>
-                      {c.gpsCoords && (
-                        <a 
-                          href={`https://www.google.com/maps?q=${encodeURIComponent(c.gpsCoords)}`} 
-                          target="_blank" rel="noreferrer" 
-                          className="flex items-center gap-1 text-emerald-600 font-black text-[9px] mt-1 bg-emerald-50 px-2 py-0.5 rounded w-fit border border-emerald-100"
-                        >
-                           <MapPin size={10}/> VIEW ON MAP
-                        </a>
-                      )}
-                    </td>
-
-                    <td className="px-6 py-4 text-slate-800">
-                      <div className="font-bold text-slate-900">{c.quarter?.qtrName || 'No Quarter'}</div>
-                      <div className="text-[11px] text-slate-500 line-clamp-1 italic">{c.address || 'No Address'}</div>
-                    </td>
-
-                    <td className="px-6 py-4 text-center">
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter ${
-                        c.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                      }`}>
-                        {c.status}
-                      </span>
-                    </td>
-
-                    <td className="px-6 py-4 text-center text-[10px] font-black space-y-0.5">
-                      <div className="text-slate-400">IN: {c.installDate || '---'}</div>
-                      <div className="text-red-500">EXP: {c.expiryDate || '---'}</div>
-                    </td>
-
-                    <td className="px-6 py-4 text-center">
-                      <div className="flex justify-center gap-2">
-                        <button onClick={() => handleOpenForm(c)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"><Edit size={16} /></button>
-                        {/* Delete Button အလုပ်လုပ်စေရန် ပြင်ဆင်ခြင်း */}
-                        <button onClick={() => handleDelete(c.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ): (
-        <div className="max-w-5xl mx-auto bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in duration-300 font-sans">
-          <div className="p-8 bg-slate-900 text-white flex justify-between items-center">
-             <h2 className="text-2xl font-black uppercase tracking-tight">{isEditing ? 'Update Records' : 'New Registration'}</h2>
-             <button onClick={() => setShowForm(false)} className="p-3 bg-white/10 hover:bg-red-500 rounded-xl transition-all shadow-lg"><X size={24}/></button>
-          </div>
+          <div className="text-[10px] text-slate-400 mb-2 leading-relaxed max-w-[200px]">{c.address}</div>
           
-          <form onSubmit={handleSubmit} className="p-10 space-y-8 bg-white text-left">
-            <div className="space-y-6">
-              <div className="flex items-center gap-2 text-blue-600 font-black uppercase text-[10px] tracking-widest border-b pb-2">
-                <Database size={16}/> 1. Identity & Hardware Specs
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-black text-slate-700">Manual ID</label>
-                  <input type="text" className={inputStyle} value={formData.customerId} onChange={e => setFormData({...formData, customerId: e.target.value})} required />
-                </div>
-                <div className="md:col-span-2 flex flex-col gap-1.5">
-                  <label className="text-xs font-black text-slate-700">Full Name</label>
-                  <input type="text" className={inputStyle} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-black text-slate-700">Status</label>
-                  <select className={inputStyle} value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
-                    <option value="ACTIVE">ACTIVE</option>
-                    <option value="DISABLE">DISABLE</option>
-                    <option value="TERMINATION">TERMINATION</option>
-                  </select>
-                </div>
-                <div className="flex flex-col gap-1.5 font-mono">
-                  <label className="text-xs font-black text-slate-700 font-sans">ONU Serial (SN)</label>
-                  <input type="text" className={`${inputStyle} bg-indigo-50/20`} value={formData.onuSerial} onChange={e => setFormData({...formData, onuSerial: e.target.value})} />
-                </div>
-                <div className="flex flex-col gap-1.5 font-mono">
-                  <label className="text-xs font-black text-slate-700 font-sans">DNSN Number (DN)</label>
-                  <input type="text" className={`${inputStyle} bg-blue-50/20`} value={formData.dnsn} onChange={e => setFormData({...formData, dnsn: e.target.value})} />
-                </div>
-                <div className="md:col-span-2 flex flex-col gap-1.5">
-                  <label className="text-xs font-black text-slate-700">GPS Coordinates</label>
-                  <input type="text" className={inputStyle} placeholder="16.82, 96.15" value={formData.gpsCoords} onChange={e => setFormData({...formData, gpsCoords: e.target.value})} />
-                </div>
-              </div>
+          {c.gpsCoords && (
+            <a 
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.gpsCoords)}`} 
+              target="_blank" 
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100 hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
+            >
+              <Globe size={11}/> GOOGLE EARTH VIEW
+            </a>
+          )}
+        </td>
 
-              <div className="flex items-center gap-2 text-emerald-600 font-black uppercase text-[10px] tracking-widest border-b pb-2 mt-8">
-                <Phone size={16}/> 2. Contact & Address Details
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-black text-slate-700">Primary Phone</label>
-                  <input type="text" className={inputStyle} value={formData.primaryPhone} onChange={e => setFormData({...formData, primaryPhone: e.target.value})} required />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-black text-slate-700">Secondary Phone</label>
-                  <input type="text" className={inputStyle} value={formData.secondaryPhone} onChange={e => setFormData({...formData, secondaryPhone: e.target.value})} />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-black text-slate-700">Quarter (ရပ်ကွက်)</label>
-                  <select className={inputStyle} value={formData.quarter.qtrId} onChange={e => setFormData({...formData, quarter: { qtrId: e.target.value }})} required>
-                    <option value="">-- Choose Qtr --</option>
-                    {quarters.map(q => <option key={q.qtrId} value={q.qtrId}>{q.qtrName}</option>)}
-                  </select>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-black text-slate-700">Package Plan</label>
-                  <select 
-                    className={inputStyle} 
-                    value={formData.packagePlan.planId} 
-                    onChange={e => setFormData({...formData, packagePlan: { planId: e.target.value }})}
-                    required
-                  >
-                    <option value="">-- Select Plan --</option>
-                    {plans.map(p => (
-                      <option key={p.planId} value={p.planId}>
-                        {p.planName} ({p.bandwidth})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="md:col-span-4 flex flex-col gap-1.5">
-                  <label className="text-xs font-black text-slate-700">Complete Home Address</label>
-                  <textarea className="w-full p-4 text-base font-bold border-2 border-slate-400 rounded-2xl bg-white outline-none focus:border-blue-600 transition-all h-24 shadow-inner" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})}></textarea>
-                </div>
-              </div>
+        {/* ၅။ STATUS */}
+        <td className="px-6 py-5 text-center">
+          <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter border ${
+            c.status === 'ACTIVE' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'
+          }`}>
+            {c.status}
+          </span>
+        </td>
 
-              <div className="flex items-center gap-2 text-orange-600 font-black uppercase text-[10px] tracking-widest border-b pb-2 mt-8">
-                <CalendarDays size={16}/> 3. Service Timelines
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-black text-slate-700">Install Date</label>
-                  <input type="date" className={inputStyle} value={formData.installDate} onChange={e => setFormData({...formData, installDate: e.target.value})} />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-black text-slate-700 text-red-600">Expiry Date</label>
-                  <input type="date" className={`${inputStyle} border-red-200 text-red-600`} value={formData.expiryDate} onChange={e => setFormData({...formData, expiryDate: e.target.value})} required />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-6 mt-12 pt-8 border-t-2 border-slate-50">
-              <button type="button" onClick={() => setShowForm(false)} className="px-8 py-4 font-black text-slate-400 hover:text-red-500 uppercase text-[10px] tracking-widest transition-all">Discard Changes</button>
-              <button type="submit" className="px-16 py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-blue-600 shadow-2xl transition-all uppercase text-[10px] tracking-widest active:scale-95">
-                {isEditing ? 'Confirm Update' : 'Save To Database'}
-              </button>
-            </div>
-          </form>
+        {/* ၆။ ACTIONS */}
+        <td className="px-6 py-5 text-center">
+          <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+            <button onClick={() => handleOpenForm(c)} className="p-2.5 text-blue-600 hover:bg-blue-100 rounded-xl bg-white border border-slate-100 shadow-sm">
+              <Edit size={16}/>
+            </button>
+            <button onClick={() => handleDelete(c.id)} className="p-2.5 text-red-500 hover:bg-red-100 rounded-xl bg-white border border-slate-100 shadow-sm">
+              <Trash2 size={16}/>
+            </button>
+          </div>
+        </td>
+      </tr>
+    );
+  })}
+</tbody>
+                </table>
+             </div>
+          </div>
         </div>
+      ) : (
+        /* =============================================================
+           RE-WRITTEN REGISTRATION FORM (With all original input boxes)
+           ============================================================= */
+        <div className="max-w-4xl mx-auto bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-300">
+  <div className="p-8 bg-slate-900 text-white flex justify-between items-center">
+     <div>
+        <h2 className="text-xl font-black uppercase tracking-tight">
+          {isEditing ? 'Update Records' : 'Register New Client'}
+        </h2>
+        <p className="text-white/40 text-[9px] font-bold uppercase tracking-[0.2em] mt-1 italic">
+          TJD ISP Billing Management
+        </p>
+     </div>
+     <button onClick={() => setShowForm(false)} className="p-3 bg-white/10 hover:bg-red-500 rounded-2xl transition-all">
+        <X size={20}/>
+     </button>
+  </div>
+  
+  <form onSubmit={handleSubmit} className="p-10 space-y-8 bg-white">
+    {/* 1. Identity & Hardware Specs */}
+    <div className="space-y-6">
+      <div className="flex items-center gap-2 text-blue-600 font-black uppercase text-[10px] tracking-widest border-b border-slate-100 pb-2">
+        <Database size={14}/> 1. Identity & Hardware Specs
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] font-black text-slate-500 uppercase ml-2 tracking-widest">Customer ID</label>
+          <input type="text" className={inputStyle} value={formData.customerId} onChange={e => setFormData({...formData, customerId: e.target.value})} required />
+        </div>
+        <div className="md:col-span-2 flex flex-col gap-1.5">
+          <label className="text-[10px] font-black text-slate-500 uppercase ml-2 tracking-widest">Full Name / Display Name</label>
+          <input type="text" className={inputStyle} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
+        </div>
+        <div className="flex flex-col gap-1.5 font-mono">
+          <label className="text-[10px] font-black text-slate-500 uppercase ml-2 tracking-widest font-sans">ONU Serial (SN)</label>
+          <input type="text" className={`${inputStyle} bg-blue-50/30`} placeholder="48575443..." value={formData.onuSerial} onChange={e => setFormData({...formData, onuSerial: e.target.value})} />
+        </div>
+        <div className="flex flex-col gap-1.5 font-mono">
+          <label className="text-[10px] font-black text-slate-500 uppercase ml-2 tracking-widest font-sans">DNSN Number (DN)</label>
+          <input type="text" className={`${inputStyle} bg-indigo-50/30`} placeholder="DN01SN01" value={formData.dnsn} onChange={e => setFormData({...formData, dnsn: e.target.value})} />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] font-black text-slate-500 uppercase ml-2 tracking-widest">Account Status</label>
+          <select className={inputStyle} value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
+            <option value="ACTIVE">ACTIVE</option>
+            <option value="DISABLE">DISABLE</option>
+            <option value="TERMINATION">TERMINATION</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    {/* 2. Location & Contact Details */}
+    <div className="space-y-6">
+      <div className="flex items-center gap-2 text-emerald-600 font-black uppercase text-[10px] tracking-widest border-b border-slate-100 pb-2">
+        <MapPin size={14}/> 2. Location & Contact Details
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] font-black text-slate-500 uppercase ml-2 tracking-widest">Primary Phone</label>
+          <input type="text" className={inputStyle} value={formData.primaryPhone} onChange={e => setFormData({...formData, primaryPhone: e.target.value})} required />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] font-black text-slate-500 uppercase ml-2 tracking-widest">Secondary Phone</label>
+          <input type="text" className={inputStyle} value={formData.secondaryPhone} onChange={e => setFormData({...formData, secondaryPhone: e.target.value})} />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] font-black text-slate-500 uppercase ml-2 tracking-widest">Quarter (ရပ်ကွက်)</label>
+          <select className={inputStyle} value={formData.quarter.qtrId} onChange={e => setFormData({...formData, quarter: { qtrId: e.target.value }})} required>
+            <option value="">-- Choose Quarter --</option>
+            {quarters.map(q => <option key={q.qtrId} value={q.qtrId}>{q.qtrName}</option>)}
+          </select>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] font-black text-slate-500 uppercase ml-2 tracking-widest">Service Plan</label>
+          <select className={inputStyle} value={formData.packagePlan.planId} onChange={e => setFormData({...formData, packagePlan: { planId: e.target.value }})} required>
+            <option value="">-- Select Plan --</option>
+            {plans.map(p => <option key={p.planId} value={p.planId}>{p.planName}</option>)}
+          </select>
+        </div>
+        <div className="md:col-span-2 flex flex-col gap-1.5">
+           <label className="text-[10px] font-black text-slate-500 uppercase ml-2 tracking-widest">GPS Coordinates (e.g., 16.82, 96.15)</label>
+           <div className="relative">
+              <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16}/>
+              <input type="text" className={`${inputStyle} pl-10`} placeholder="Latitude, Longitude" value={formData.gpsCoords} onChange={e => setFormData({...formData, gpsCoords: e.target.value})} />
+           </div>
+        </div>
+        <div className="md:col-span-2 flex flex-col gap-1.5">
+          <label className="text-[10px] font-black text-slate-500 uppercase ml-2 tracking-widest">Full Home Address</label>
+          <textarea className="w-full h-20 p-3 text-sm font-bold border-2 border-slate-200 rounded-2xl outline-none focus:border-blue-600 transition-all resize-none shadow-inner" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})}></textarea>
+        </div>
+      </div>
+    </div>
+
+    {/* 3. Dates Section */}
+    <div className="space-y-6">
+      <div className="flex items-center gap-2 text-orange-600 font-black uppercase text-[10px] tracking-widest border-b border-slate-100 pb-2">
+        <CalendarDays size={14}/> 3. Billing & Install Dates
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] font-black text-slate-500 uppercase ml-2 tracking-widest">Installation Date</label>
+          <input type="date" className={inputStyle} value={formData.installDate} onChange={e => setFormData({...formData, installDate: e.target.value})} />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] font-black text-red-600 uppercase ml-2 tracking-widest">Billing Expiry Date</label>
+          <input type="date" className={`${inputStyle} border-red-100 text-red-600`} value={formData.expiryDate} onChange={e => setFormData({...formData, expiryDate: e.target.value})} required />
+        </div>
+      </div>
+    </div>
+
+    {/* Footer Actions */}
+    <div className="flex justify-end gap-6 pt-10 border-t border-slate-100">
+      <button type="button" onClick={() => setShowForm(false)} className="px-8 py-4 font-black text-slate-400 hover:text-red-500 uppercase text-[10px] tracking-widest transition-all">Discard</button>
+      <button type="submit" className="px-16 py-4 bg-blue-600 text-white rounded-2xl font-black hover:bg-slate-900 shadow-2xl transition-all uppercase text-[10px] tracking-widest active:scale-95">
+        {isEditing ? 'Confirm Update' : 'Register Customer'}
+      </button>
+    </div>
+  </form>
+</div>
       )}
     </div>
   );
