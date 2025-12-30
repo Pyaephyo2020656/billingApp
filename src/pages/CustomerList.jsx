@@ -151,6 +151,7 @@ const CustomerList = () => {
                          <th className="px-6 py-4 text-left">Contact</th>
                          <th className="px-6 py-4 text-left">Hardware (SN/DN)</th>
                          <th className="px-6 py-4 text-left">Location</th>
+                         <th className="px-6 py-4 text-left">Date Details</th>
                          <th className="px-6 py-4 text-center">Status</th>
                          <th className="px-6 py-4 text-center">Actions</th>
                       </tr>
@@ -217,6 +218,21 @@ const CustomerList = () => {
               <Globe size={11}/> GOOGLE EARTH VIEW
             </a>
           )}
+        </td>
+
+        <td className="px-6 py-5">
+          <div className="space-y-1">
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+              <span className="text-[10px] font-bold text-slate-400 uppercase">Inst:</span>
+              <span className="text-[11px] font-black text-slate-700">{c.installDate || '---'}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-rose-500"></div>
+              <span className="text-[10px] font-bold text-slate-400 uppercase">Expr:</span>
+              <span className="text-[11px] font-black text-rose-600 italic">{c.expiryDate || '---'}</span>
+            </div>
+          </div>
         </td>
 
         {/* ၅။ STATUS */}
