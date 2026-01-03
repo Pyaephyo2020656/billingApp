@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { FileSpreadsheet } from 'lucide-react'; 
+import { exportToExcel } from '../utils/excelExport';
 import API from '../api/axios';
 import { 
   Plus, Edit, Trash2, Search, X, MapPin, Database, Phone, 
@@ -29,6 +31,27 @@ const CustomerList = ({ userRole }) => { // App.jsx မှ userRole ကို �
     quarter: { qtrId: '' },      
     packagePlan: { planId: '' }  
   });
+
+
+  const handleExport = () => {
+  const excelData = customers.map(c => ({
+    'Customer ID': c.customerId,
+    'Name': c.name,
+    'Primary Phone': c.primaryPhone,
+    'Secondary Phone': c.secondaryPhone || '---', // ကျန်ခဲ့လို့မဖြစ်သော Field
+    'Plan': c.packagePlan?.planName,
+    'Bandwidth': c.packagePlan?.bandwidth,
+    'Quarter': c.quarter?.qtrName,
+    'Address': c.address,
+    'ONU Serial (SN)': c.onuSerial || '---',   // ပါရမည့် Tech Spec
+    'DNSN': c.dnsn || '---',                    // ပါရမည့် Tech Spec
+    'GPS Location': c.gpsCoords || '---',        // ပါရမည့် Tech Spec
+    'Install Date': c.installDate,
+    'Expiry Date': c.expiryDate,
+    'Status': c.status
+  }));
+  exportToExcel(excelData, 'TJD_Customer_Full_Report', 'Customers');
+};
 
   // Status Change Modal အတွက် States
   const [showStatusModal, setShowStatusModal] = useState(false);
@@ -161,6 +184,13 @@ const CustomerList = ({ userRole }) => { // App.jsx မှ userRole ကို �
                   <Plus size={18} /> Add New
                 </button>
               )}
+              <button 
+                  onClick={handleExport}
+                  className="bg-emerald-600 text-white px-4 py-3 rounded-2xl flex items-center gap-2 hover:bg-emerald-700 shadow-lg font-black uppercase text-[10px] tracking-widest transition-all"
+                >
+                  <FileSpreadsheet size={18} /> Export Excel
+                </button>
+
             </div>
           </div>
 

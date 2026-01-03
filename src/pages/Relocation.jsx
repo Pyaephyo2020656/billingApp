@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { exportToExcel } from '../utils/excelExport'; // import အရင်လုပ်ပါ
+import { FileSpreadsheet } from 'lucide-react'; // icon လေးသုံးဖို့ပါ
 import API from '../api/axios';
 import { Plus, Search, MapPin, History, X, ArrowRight, Trash2 } from 'lucide-react';
 
@@ -87,6 +89,26 @@ const RelocationPage = ({ userRole }) => { // App.jsx မှ userRole ကို 
     }
   };
 
+  const handleExport = () => {
+  const excelData = historyList.map(h => ({
+    'Date': h.relocationDate,
+    'Customer ID': h.customer?.customerId,
+    'Customer Name': h.customer?.name,
+    'Old Quarter': h.oldQuarter?.qtrName,
+    'Old Address': h.oldAddress,
+    'Old DNSN': h.oldDnsn,
+    'Old GPS': h.oldGps,
+    'New Quarter': h.newQuarter?.qtrName,
+    'New Address': h.newAddress,
+    'New DNSN': h.newDnsn,
+    'New GPS': h.newGps,
+    'Remark': h.remark
+  }));
+  exportToExcel(excelData, 'Relocation_History_Report', 'Relocations');
+};
+
+
+
   const inputStyle = "w-full h-12 px-4 text-base font-bold border-2 border-slate-300 rounded-xl bg-white focus:border-blue-600 outline-none transition-all shadow-sm block text-slate-800";
 
   return (
@@ -116,6 +138,10 @@ const RelocationPage = ({ userRole }) => { // App.jsx မှ userRole ကို 
                   <Plus size={20} /> ADD RELOCATION
                 </button>
               )}
+                <button onClick={handleExport} className="bg-emerald-600 text-white px-5 py-3 rounded-xl flex items-center gap-2 hover:bg-emerald-700 shadow-lg font-bold transition-all uppercase text-[10px] tracking-widest">
+                <FileSpreadsheet size={18} /> Export Excel
+              </button>
+
             </div>
           </div>
 

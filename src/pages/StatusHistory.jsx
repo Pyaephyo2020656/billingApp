@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { FileSpreadsheet } from 'lucide-react'; 
+import { exportToExcel } from '../utils/excelExport';
 import API from '../api/axios';
 import { History, Search, RefreshCcw, Calendar, Clock, CheckCircle } from 'lucide-react';
 
@@ -51,6 +53,23 @@ const StatusHistory = () => {
     });
   };
 
+  const handleExport = () => {
+  const excelData = logs.map(log => ({
+    'Date': log.changeDate?.split('T')[0],
+    'Customer ID': log.customer?.customerId,
+    'Name': log.customer?.name,
+    'Phone': log.customer?.primaryPhone,
+    'Old Status': log.oldStatus,
+    'New Status': log.newStatus,
+    'Remark': log.remark,
+    'Address': log.customer?.address,
+    'GPS': log.customer?.gpsCoords
+  }));
+  exportToExcel(excelData, 'Status_Change_Logs', 'Logs');
+};
+
+
+
   return (
     <div className="p-4 text-left font-sans max-w-[1600px] mx-auto">
       <div className="space-y-6">
@@ -73,6 +92,9 @@ const StatusHistory = () => {
               />
             </div>
             <button onClick={fetchData} className="p-3 bg-blue-600 text-white rounded-xl hover:bg-slate-900 transition-all shadow-md"><RefreshCcw size={18}/></button>
+             <button onClick={handleExport} className="bg-emerald-600 text-white p-3 rounded-xl hover:bg-emerald-700 transition-all shadow-md flex items-center gap-2 font-bold text-[10px] uppercase">
+              <FileSpreadsheet size={18}/> Export Excel
+            </button>
           </div>
         </div>
 
