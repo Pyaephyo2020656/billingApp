@@ -81,6 +81,21 @@ const RelocationPage = () => {
     } catch (err) { alert("သိမ်းဆည်း၍မရပါ။ Backend logic ကို စစ်ဆေးပါ။"); }
   };
 
+
+  const handleDelete = async (id) => {
+  if (window.confirm("ဒီ History record ကို ဖျက်မှာ သေချာပါသလား?")) {
+    try {
+      // Backend Endpoint နှင့် အတိအကျ ညှိထားပါသည်
+      await API.delete(`/relocations/history/${id}`);
+      alert("ဖျက်သိမ်းပြီးပါပြီ။");
+      fetchData(); // ဇယားကို Update ပြန်လုပ်ခြင်း
+    } catch (err) {
+      console.error("Delete error:", err);
+      alert("ဖျက်၍မရပါ။ Backend မှာ DeleteMapping ရှိမရှိ စစ်ဆေးပါ။");
+    }
+  }
+};
+
   const inputStyle = "w-full h-12 px-4 text-base font-bold border-2 border-slate-300 rounded-xl bg-white focus:border-blue-600 outline-none transition-all shadow-sm block text-slate-800";
 
   return (
@@ -142,7 +157,16 @@ const RelocationPage = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-slate-500 text-xs">{h.remark || '---'}</td>
-                    <td className="px-6 py-4 text-center"><Trash2 size={16} className="text-slate-300 mx-auto cursor-pointer hover:text-red-500"/></td>
+                    {/* <td className="px-6 py-4 text-center"><Trash2 size={16} className="text-slate-300 mx-auto cursor-pointer hover:text-red-500"/></td> */}
+                 
+                    <td className="px-6 py-4 text-center">
+                          <button 
+                            onClick={() => handleDelete(h.relocationId)} 
+                            className="p-2 text-slate-300 hover:text-red-600 transition-colors"
+                          >
+                            <Trash2 size={18}/>
+                          </button>
+                        </td>
                   </tr>
                 )) : (
                   <tr><td colSpan="5" className="py-10 text-center text-slate-400 font-bold uppercase text-xs tracking-widest">No history records found</td></tr>

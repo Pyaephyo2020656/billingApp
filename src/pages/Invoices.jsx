@@ -81,12 +81,19 @@ const Invoices = () => {
     setInvoiceItems([{ description: 'Monthly Internet Fee', periodStart: '', periodEnd: '', qty: 1, unitPrice: 0, itemDiscount: 0 }]);
   };
 
-  // Item ပြောင်းလဲမှုများကို Handle လုပ်ခြင်း (ရိုက်လို့ရအောင် ဤနေရာတွင် ပြင်ထားသည်)
-  const handleItemChange = (index, field, value) => {
-    const updatedItems = [...invoiceItems];
-    updatedItems[index] = { ...updatedItems[index], [field]: value };
-    setInvoiceItems(updatedItems);
-  };
+ const handleItemChange = (index, field, value) => {
+  const updatedItems = [...invoiceItems];
+  
+  // field က qty, unitPrice, itemDiscount တစ်ခုခုဆိုရင် number အဖြစ်ပြောင်းမယ်
+  let finalValue = value;
+  if (['qty', 'unitPrice', 'itemDiscount'].includes(field)) {
+    // အလွတ်ဖြစ်နေရင် 0 ထားမယ်၊ မဟုတ်ရင် float ပြောင်းမယ်
+    finalValue = value === '' ? '' : value; 
+  }
+
+  updatedItems[index] = { ...updatedItems[index], [field]: finalValue };
+  setInvoiceItems(updatedItems);
+};
 
   const removeItem = (index) => {
     if (invoiceItems.length > 1) {
@@ -185,13 +192,43 @@ const Invoices = () => {
           <form onSubmit={handleSubmit} className="flex flex-col lg:flex-row gap-8">
             <div className="flex-1 space-y-8">
               <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 grid grid-cols-2 gap-8">
-                <div className="space-y-3">
+                {/* <div className="space-y-3">
                   <label className="text-xs font-black text-blue-600 uppercase">Customer</label>
                   <select className="w-full h-14 px-5 border-2 border-slate-100 rounded-2xl font-bold bg-slate-50 focus:border-blue-600 outline-none" onChange={(e) => setSelectedCust(customers.find(c => c.id === parseInt(e.target.value)))} value={selectedCust?.id || ""} required>
                     <option value="" disabled>Choose a customer...</option>
                     {customers.map(c => <option key={c.id} value={c.id}>{c.customerId} - {c.name}</option>)}
                   </select>
-                </div>
+                </div> */}
+
+                {/* Selected Customer Plan & Bandwidth Badge Only */}
+                                {selectedCust?.packagePlan && (
+                                  <div className="absolute top-0 right-0 px-6 py-2 bg-slate-800 text-white text-[10px] font-black rounded-bl-2xl uppercase tracking-widest shadow-lg animate-in slide-in-from-right">
+                                    PLAN: {selectedCust.packagePlan.planName} ({selectedCust.packagePlan.bandwidth})
+                                  </div>
+                                )}
+
+                                <div className="space-y-3">
+                                  <label className="text-xs font-black text-blue-600 uppercase">Customer</label>
+                                  <select 
+                                    className="w-full h-14 px-5 border-2 border-slate-100 rounded-2xl font-bold bg-slate-50 focus:border-blue-600 outline-none transition-all" 
+                                    onChange={(e) => {
+                                      const cust = customers.find(c => c.id === parseInt(e.target.value));
+                                      setSelectedCust(cust);
+                                      // Price အလိုအလျောက်ဖြည့်တဲ့ logic ဖြုတ်လိုက်ပါပြီ
+                                    }} 
+                                    value={selectedCust?.id || ""} 
+                                    required
+                                  >
+                                    <option value="" disabled>Choose a customer...</option>
+                                    {customers.map(c => (
+                                      <option key={c.id} value={c.id}>
+                                        {c.customerId} - {c.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+
+           
                 <div className="space-y-3">
                   <label className="text-xs font-black text-slate-400 uppercase">Invoice Date</label>
                   <input type="date" className="w-full h-14 px-5 border-2 border-slate-100 rounded-2xl font-bold bg-slate-50 focus:border-blue-600 outline-none" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)}/>

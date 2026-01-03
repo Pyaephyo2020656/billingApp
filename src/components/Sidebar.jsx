@@ -1,6 +1,7 @@
 import React from 'react';
-import { LayoutDashboard, Users, MapPin, FileText, Settings, LogOut, Wifi } from 'lucide-react';
+import { LayoutDashboard, Users, MapPin, FileText, Settings, LogOut, Wifi, History } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+
 
 const Sidebar = ({ onLogout }) => {
   const location = useLocation();
@@ -14,6 +15,7 @@ const Sidebar = ({ onLogout }) => {
     { name: 'Relocation', path: '/relocation', icon: <MapPin size={20} /> },
     { name: 'Invoices', path: '/invoices', icon: <FileText size={20} /> },
     { name: 'User Settings', path: '/settings', icon: <Settings size={20} /> },
+    { name: 'Status Logs', path: '/status-history', icon: <History size={20}/> },
 
   ];
 

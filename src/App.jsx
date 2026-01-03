@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+import StatusHistory from './pages/StatusHistory';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+
 
 // Layout & Auth components
 import Sidebar from './components/Sidebar';
@@ -28,15 +30,15 @@ function App() {
 
         <main className="flex-1 ml-64 p-8 min-h-screen">
           <Routes>
-            {/* ၂။ ဒီနေရာမှာ Dashboard Component ကို အစားထိုးလိုက်ပါ */}
+           
             <Route path="/" element={<Dashboard />} />
-
             <Route path="/customers" element={<CustomerList />} />
             <Route path="/plans" element={<PackagePlan />} />
             <Route path="/invoices" element={<Invoices />} />
             <Route path="/quarters" element={<Quarter />} />
             <Route path="/relocation" element={<Relocation />} />
             <Route path="/settings" element={<UserList />} />
+            <Route path="/status-history" element={<StatusHistory />} />
 
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>

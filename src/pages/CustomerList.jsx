@@ -26,6 +26,13 @@ const CustomerList = () => {
     packagePlan: { planId: '' }  
   });
 
+
+  // Status Change Modal အတွက် States
+const [showStatusModal, setShowStatusModal] = useState(false);
+const [selectedCustomerForStatus, setSelectedCustomerForStatus] = useState(null);
+const [newStatus, setNewStatus] = useState('');
+const [statusRemark, setStatusRemark] = useState('');
+
   useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
@@ -39,6 +46,26 @@ const CustomerList = () => {
       setQuarters(qRes.data);
     } catch (err) { console.error("Fetch Error:", err); }
   };
+
+
+  const handleStatusUpdate = async (e) => {
+  e.preventDefault();
+  try {
+    // Backend CustomerService ထဲက updateCustomerStatus logic ကို လှမ်းခေါ်ခြင်း
+    await API.put(`/customers/${selectedCustomerForStatus.id}/status`, null, {
+      params: { 
+        newStatus: newStatus,
+        remark: statusRemark 
+      }
+    });
+    alert("Status Updated & Logged Successfully!");
+    setShowStatusModal(false);
+    setStatusRemark('');
+    fetchData(); // List ကို update ပြန်လုပ်ရန်
+  } catch (err) {
+    alert("Error updating status: " + (err.response?.data?.message || "Server Error"));
+  }
+};
 
   const handleDateFilter = async () => {
     if (!startDate || !endDate) {
@@ -235,13 +262,31 @@ const CustomerList = () => {
           </div>
         </td>
 
-        {/* ၅။ STATUS */}
+        {/* ၅။ STATUS
         <td className="px-6 py-5 text-center">
           <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter border ${
             c.status === 'ACTIVE' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'
           }`}>
             {c.status}
           </span>
+        </td> */}
+
+
+        <td className="px-6 py-5 text-center">
+          <button 
+            onClick={() => {
+              setSelectedCustomerForStatus(c);
+              setNewStatus(c.status);
+              setShowStatusModal(true);
+            }}
+            className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter border transition-all hover:scale-105 ${
+              c.status === 'ACTIVE' ? 'bg-green-50 text-green-700 border-green-200' : 
+              c.status === 'DISABLE' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+              'bg-red-50 text-red-700 border-red-200'
+            }`}
+          >
+            {c.status}
+          </button>
         </td>
 
         {/* ၆။ ACTIONS */}
@@ -338,12 +383,22 @@ const CustomerList = () => {
           </select>
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] font-black text-slate-500 uppercase ml-2 tracking-widest">Service Plan</label>
-          <select className={inputStyle} value={formData.packagePlan.planId} onChange={e => setFormData({...formData, packagePlan: { planId: e.target.value }})} required>
-            <option value="">-- Select Plan --</option>
-            {plans.map(p => <option key={p.planId} value={p.planId}>{p.planName}</option>)}
-          </select>
-        </div>
+                <label className="text-[10px] font-black text-slate-500 uppercase ml-2 tracking-widest">Service Plan</label>
+                <select 
+                  className={inputStyle} 
+                  value={formData.packagePlan.planId} 
+                  onChange={e => setFormData({...formData, packagePlan: { planId: e.target.value }})} 
+                  required
+                >
+                  <option value="">-- Select Plan --</option>
+                  {plans.map(p => (
+                    <option key={p.planId} value={p.planId}>
+                      {/* ဤနေရာတွင် Plan Name နှင့် Bandwidth ကို တွဲပြပေးလိုက်ပါပြီ */}
+                      {p.planName} ({p.bandwidth})
+                    </option>
+                  ))}
+                </select>
+              </div>
         <div className="md:col-span-2 flex flex-col gap-1.5">
            <label className="text-[10px] font-black text-slate-500 uppercase ml-2 tracking-widest">GPS Coordinates (e.g., 16.82, 96.15)</label>
            <div className="relative">
@@ -385,6 +440,48 @@ const CustomerList = () => {
   </form>
 </div>
       )}
+
+      {showStatusModal && (
+  <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="p-6 bg-slate-900 text-white flex justify-between items-center">
+        <h3 className="font-black uppercase text-sm tracking-widest">Update Service Status</h3>
+        <button onClick={() => setShowStatusModal(false)}><X size={20}/></button>
+      </div>
+      <form onSubmit={handleStatusUpdate} className="p-8 space-y-6">
+        <div>
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">New Status</label>
+          <select 
+            className={inputStyle} 
+            value={newStatus} 
+            onChange={e => setNewStatus(e.target.value)}
+          >
+            <option value="ACTIVE">ACTIVE</option>
+            <option value="DISABLE">DISABLE</option>
+            <option value="TERMINATION">TERMINATION</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Reason / Remark</label>
+          <textarea 
+            className="w-full h-24 p-4 border-2 border-slate-100 rounded-xl outline-none focus:border-blue-600 font-bold text-sm resize-none"
+            placeholder="e.g., Customer traveling for 1 month..."
+            value={statusRemark}
+            onChange={e => setStatusRemark(e.target.value)}
+            required
+          />
+        </div>
+        <button type="submit" className="w-full py-4 bg-blue-600 text-white rounded-xl font-black uppercase text-xs shadow-lg hover:bg-slate-900 transition-all">
+          Confirm Change
+        </button>
+      </form>
+    </div>
+  </div>
+)}
+
+
+
+
     </div>
   );
 };
