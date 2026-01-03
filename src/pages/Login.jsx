@@ -6,18 +6,21 @@ const Login = ({ onLoginSuccess }) => {
   const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    try {
-      // Backend က /api/users/login ဆီ ပို့မည် (Logic ကို အောက်မှာ ပြပေးထားပါတယ်)
-      const res = await API.post('/users/login', credentials);
-      if (res.data) {
-        onLoginSuccess();
-      }
-    } catch (err) {
-      setError('Invalid username or password!');
+ const handleLogin = async (e) => {
+  e.preventDefault();
+  try {
+    const res = await API.post('/users/login', credentials);
+    if (res.data) {
+      // Role ကို localStorage မှာ သိမ်းလိုက်ပါမယ်
+      localStorage.setItem('userRole', res.data.role); 
+      localStorage.setItem('username', res.data.username);
+      onLoginSuccess();
     }
-  };
+  } catch (err) {
+    // Backend က enabled=false ဖြစ်နေရင်လည်း ဒီထဲ ရောက်လာမှာပါ
+    setError('Invalid credentials or account disabled!');
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-900 px-4">

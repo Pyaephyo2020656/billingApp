@@ -1,26 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import API from '../api/axios';
-import { Plus, Search, MapPin, History, X, Save, ArrowRight, Trash2 } from 'lucide-react';
+import { Plus, Search, MapPin, History, X, ArrowRight, Trash2 } from 'lucide-react';
 
-const RelocationPage = () => {
+const RelocationPage = ({ userRole }) => { // App.jsx မှ userRole ကို လက်ခံပါသည်
   const [historyList, setHistoryList] = useState([]);
   const [quarters, setQuarters] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCust, setSelectedCust] = useState(null);
 
+  // Role အလိုက် လုပ်ပိုင်ခွင့် စစ်ဆေးခြင်း
+  const canModify = userRole === 'ADMIN' || userRole === 'STAFF'; // ADMIN နှင့် STAFF သာ ရွှေ့ပြောင်းခွင့်ရှိသည်
+  const isAdmin = userRole === 'ADMIN'; // ADMIN တစ်ဦးတည်းသာ History ဖျက်ပိုင်ခွင့်ရှိသည်
+
   const [formData, setFormData] = useState({
     newAddress: '', newGps: '', newDnsn: '', newQtrId: '', remark: ''
   });
 
-  // ၁။ Page စပွင့်ချင်းမှာ ဒေတာများ အလိုအလျောက် ယူရန်
   useEffect(() => {
     loadInitialData();
   }, []);
 
   const loadInitialData = async () => {
     await loadQuarters();
-    await fetchData(); // Table View အတွက် History အားလုံးကို ဆွဲထုတ်ခြင်း
+    await fetchData();
   };
 
   const loadQuarters = async () => {
@@ -30,26 +33,19 @@ const RelocationPage = () => {
     } catch (err) { console.error("Quarters Load Error:", err); }
   };
 
-  // ၂။ History List အားလုံးကို Backend မှ ယူခြင်း
   const fetchData = async () => {
     try {
-      // Backend: @GetMapping("/history/all")
       const res = await API.get('/relocations/history/all'); 
-      console.log("API Response Data:", res.data);
       setHistoryList(res.data);
-    } catch (err) { 
-      console.error("Fetch History Error:", err); 
-    }
+    } catch (err) { console.error("Fetch History Error:", err); }
   };
 
-  // ၃။ Customer ကို ID ဖြင့် ရှာဖွေခြင်း
   const findCustomer = async () => {
     if (!searchTerm) return;
     try {
       const res = await API.get(`/customers?search=${searchTerm}`);
       if (res.data.length > 0) {
         setSelectedCust(res.data[0]);
-        // ထိုသူ၏ History သီးသန့်ကိုပါ ပြလိုလျှင် (Optional)
         const hRes = await API.get(`/relocations/history/${res.data[0].customerId}`);
         setHistoryList(hRes.data);
       } else {
@@ -59,7 +55,6 @@ const RelocationPage = () => {
     } catch (err) { console.error("Search Error:", err); }
   };
 
-  // ၄။ နေရာသစ် အချက်အလက်များ သိမ်းဆည်းခြင်း
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedCust) return;
@@ -71,37 +66,32 @@ const RelocationPage = () => {
         remark: formData.remark,
         newQtr: { qtrId: parseInt(formData.newQtrId) }
       };
-      // Backend: @PostMapping("/{id}")
       await API.post(`/relocations/${selectedCust.id}`, payload);
       alert("Relocation အောင်မြင်စွာ သိမ်းဆည်းပြီးပါပြီ။");
       setShowForm(false);
       setSearchTerm('');
       setFormData({ newAddress: '', newGps: '', newDnsn: '', newQtrId: '', remark: '' });
-      fetchData(); // List ကို Update ပြန်လုပ်ခြင်း
+      fetchData();
     } catch (err) { alert("သိမ်းဆည်း၍မရပါ။ Backend logic ကို စစ်ဆေးပါ။"); }
   };
 
-
   const handleDelete = async (id) => {
-  if (window.confirm("ဒီ History record ကို ဖျက်မှာ သေချာပါသလား?")) {
-    try {
-      // Backend Endpoint နှင့် အတိအကျ ညှိထားပါသည်
-      await API.delete(`/relocations/history/${id}`);
-      alert("ဖျက်သိမ်းပြီးပါပြီ။");
-      fetchData(); // ဇယားကို Update ပြန်လုပ်ခြင်း
-    } catch (err) {
-      console.error("Delete error:", err);
-      alert("ဖျက်၍မရပါ။ Backend မှာ DeleteMapping ရှိမရှိ စစ်ဆေးပါ။");
+    if (window.confirm("ဒီ History record ကို ဖျက်မှာ သေချာပါသလား?")) {
+      try {
+        await API.delete(`/relocations/history/${id}`);
+        alert("ဖျက်သိမ်းပြီးပါပြီ။");
+        fetchData();
+      } catch (err) {
+        alert("ဖျက်၍မရပါ။ Backend မှာ DeleteMapping ရှိမရှိ စစ်ဆေးပါ။");
+      }
     }
-  }
-};
+  };
 
   const inputStyle = "w-full h-12 px-4 text-base font-bold border-2 border-slate-300 rounded-xl bg-white focus:border-blue-600 outline-none transition-all shadow-sm block text-slate-800";
 
   return (
-    <div className="p-4 text-left font-sans">
+    <div className="p-4 text-left font-sans max-w-[1600px] mx-auto">
       {!showForm ? (
-        /* TABLE VIEW - History List */
         <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
           <div className="p-6 border-b flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50/50">
             <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tighter flex items-center gap-2">
@@ -120,9 +110,12 @@ const RelocationPage = () => {
                   onKeyDown={(e) => e.key === 'Enter' && findCustomer()}
                 />
               </div>
-              <button onClick={() => setShowForm(true)} className="bg-blue-600 text-white px-6 py-3 rounded-xl flex items-center gap-2 hover:bg-blue-700 shadow-lg font-bold transition-all">
-                <Plus size={20} /> ADD RELOCATION
-              </button>
+              {/* ADMIN နှင့် STAFF သာ အသစ်ထည့်ခွင့်ရှိသည် */}
+              {canModify && (
+                <button onClick={() => setShowForm(true)} className="bg-blue-600 text-white px-6 py-3 rounded-xl flex items-center gap-2 hover:bg-blue-700 shadow-lg font-bold transition-all uppercase text-xs tracking-widest">
+                  <Plus size={20} /> ADD RELOCATION
+                </button>
+              )}
             </div>
           </div>
 
@@ -139,7 +132,7 @@ const RelocationPage = () => {
                   <th className="px-6 py-4 text-center">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 italic">
                 {historyList.length > 0 ? historyList.map((h) => (
                   <tr key={h.relocationId} className="hover:bg-blue-50/30">
                     <td className="px-6 py-4 font-black text-blue-600 text-[11px]">{h.relocationDate}</td>
@@ -149,34 +142,31 @@ const RelocationPage = () => {
                       <div className="text-[11px] italic line-clamp-1">{h.oldAddress}</div>
                     </td>
                     <td className="px-6 py-4 text-[11px] font-mono text-slate-500">{h.oldGps || '---'}</td>
-                    
-                    {/* DNSN (Old) ပြသခြင်း */}
                     <td className="px-6 py-4">
                       <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded">
                         {h.oldDnsn || '---'}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-slate-500 text-xs">{h.remark || '---'}</td>
-                    {/* <td className="px-6 py-4 text-center"><Trash2 size={16} className="text-slate-300 mx-auto cursor-pointer hover:text-red-500"/></td> */}
-                 
                     <td className="px-6 py-4 text-center">
-                          <button 
-                            onClick={() => handleDelete(h.relocationId)} 
-                            className="p-2 text-slate-300 hover:text-red-600 transition-colors"
-                          >
-                            <Trash2 size={18}/>
-                          </button>
-                        </td>
+                      {/* ADMIN တစ်ဦးတည်းသာ ဖျက်ခွင့်ရှိသည် */}
+                      {isAdmin ? (
+                        <button onClick={() => handleDelete(h.relocationId)} className="p-2 text-slate-300 hover:text-red-600 transition-colors">
+                          <Trash2 size={18}/>
+                        </button>
+                      ) : (
+                        <span className="text-[9px] font-black text-slate-200 uppercase">View Only</span>
+                      )}
+                    </td>
                   </tr>
                 )) : (
-                  <tr><td colSpan="5" className="py-10 text-center text-slate-400 font-bold uppercase text-xs tracking-widest">No history records found</td></tr>
+                  <tr><td colSpan="7" className="py-10 text-center text-slate-400 font-bold uppercase text-xs tracking-widest">No history records found</td></tr>
                 )}
               </tbody>
             </table>
           </div>
         </div>
       ) : (
-        /* ENTRY FORM - Add New */
         <div className="max-w-4xl mx-auto bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden font-sans">
           <div className="p-8 bg-slate-900 text-white flex justify-between items-center">
              <h2 className="text-2xl font-black uppercase tracking-tight">New Relocation</h2>
@@ -189,14 +179,8 @@ const RelocationPage = () => {
                 <Search size={16}/> 1. Identify Customer
               </div>
               <div className="flex gap-4">
-                <input 
-                  type="text" 
-                  className={inputStyle} 
-                  placeholder="Enter Customer ID..." 
-                  value={searchTerm} 
-                  onChange={(e) => setSearchTerm(e.target.value)} 
-                />
-                <button type="button" onClick={findCustomer} className="px-8 bg-slate-800 text-white font-black rounded-xl hover:bg-blue-600 transition-all">FIND</button>
+                <input type="text" className={inputStyle} placeholder="Enter Customer ID..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                <button type="button" onClick={findCustomer} className="px-8 bg-slate-800 text-white font-black rounded-xl hover:bg-blue-600 transition-all uppercase text-xs tracking-widest">FIND</button>
               </div>
 
               {selectedCust && (
