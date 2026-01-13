@@ -10,6 +10,7 @@ const RelocationPage = ({ userRole }) => { // App.jsx မှ userRole ကို 
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCust, setSelectedCust] = useState(null);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Role အလိုက် လုပ်ပိုင်ခွင့် စစ်ဆေးခြင်း
   const canModify = userRole === 'ADMIN' || userRole === 'STAFF'; // ADMIN နှင့် STAFF သာ ရွှေ့ပြောင်းခွင့်ရှိသည်
@@ -27,6 +28,38 @@ const RelocationPage = ({ userRole }) => { // App.jsx မှ userRole ကို 
     await loadQuarters();
     await fetchData();
   };
+
+
+  useEffect(() => {
+  // စာရိုက်နေတုန်း ခဏခဏ API မခေါ်အောင် delay ပေးထားမယ်
+  const delayDebounceFn = setTimeout(() => {
+    if (searchTerm.trim() === '') {
+      // စာသားကို ဖျက်လိုက်ရင် အစကတည်းကရှိတဲ့ data တွေကို ပြန်ခေါ်မယ်
+      fetchData(); 
+      setTotalCount(0);
+    } else {
+      // စာသားရှိရင် Search API ကို သွားမယ်
+      handleMainSearch();
+    }
+  }, 400); // 0.4 စက္ကန့်လောက် စောင့်ပေးတာက UX ပိုကောင်းပါတယ်
+
+  return () => clearTimeout(delayDebounceFn);
+}, [searchTerm]); // searchTerm ပြောင်းတိုင်း ဒီကောင်က အလုပ်လုပ်မယ်
+
+
+const handleMainSearch = async () => {
+  try {
+    const res = await API.get(`/relocations/search?term=${searchTerm}`);
+    setHistoryList(res.data.data);
+    setTotalCount(res.data.totalCount);
+  } catch (err) { 
+    console.error("Search Error:", err);
+  }
+};
+
+
+
+  
 
   const loadQuarters = async () => {
     try {
@@ -56,6 +89,10 @@ const RelocationPage = ({ userRole }) => { // App.jsx မှ userRole ကို 
       }
     } catch (err) { console.error("Search Error:", err); }
   };
+
+
+
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -115,36 +152,68 @@ const RelocationPage = ({ userRole }) => { // App.jsx မှ userRole ကို 
     <div className="p-4 text-left font-sans max-w-[1600px] mx-auto">
       {!showForm ? (
         <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
+          {/* Header Section */}
           <div className="p-6 border-b flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50/50">
             <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tighter flex items-center gap-2">
-               <History size={28} className="text-blue-600"/> Relocation History
+              <History size={28} className="text-blue-600"/> Relocation History
             </h1>
             
             <div className="flex items-center gap-3 w-full md:w-auto">
+              {/* Main Search Input */}
               <div className="relative w-full md:w-80">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input 
                   type="text"
-                  placeholder="Enter ID to see history..."
+                  placeholder="Search by ID or Name..."
                   className="w-full pl-10 pr-4 py-2.5 bg-white border-2 border-slate-200 rounded-xl focus:border-blue-600 outline-none font-bold text-sm"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && findCustomer()}
                 />
               </div>
-              {/* ADMIN နှင့် STAFF သာ အသစ်ထည့်ခွင့်ရှိသည် */}
+
+              {/* Action Buttons */}
               {canModify && (
                 <button onClick={() => setShowForm(true)} className="bg-blue-600 text-white px-6 py-3 rounded-xl flex items-center gap-2 hover:bg-blue-700 shadow-lg font-bold transition-all uppercase text-xs tracking-widest">
                   <Plus size={20} /> ADD RELOCATION
                 </button>
               )}
-                <button onClick={handleExport} className="bg-emerald-600 text-white px-5 py-3 rounded-xl flex items-center gap-2 hover:bg-emerald-700 shadow-lg font-bold transition-all uppercase text-[10px] tracking-widest">
+              
+              <button onClick={handleExport} className="bg-emerald-600 text-white px-5 py-3 rounded-xl flex items-center gap-2 hover:bg-emerald-700 shadow-lg font-bold transition-all uppercase text-[10px] tracking-widest">
                 <FileSpreadsheet size={18} /> Export Excel
               </button>
-
             </div>
           </div>
 
+          {/* Search Result Info & Count Badge */}
+          <div className="px-6 py-4 flex items-center justify-between bg-white">
+            <div className="flex items-center gap-3">
+              {/* Search လုပ်ထားမှ ပေါ်မည့် Badge */}
+              {searchTerm && (
+                <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 px-4 py-1.5 rounded-full shadow-sm animate-in fade-in slide-in-from-left-2">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+                  <span className="text-blue-800 text-[11px] font-black uppercase tracking-widest">
+                    Found {totalCount} {totalCount > 1 ? 'Records' : 'Record'}
+                  </span>
+                  <button 
+                    onClick={() => { setSearchTerm(''); setTotalCount(0); fetchData(); }}
+                    className="ml-2 text-slate-400 hover:text-red-500 transition-colors"
+                    title="Clear Search"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
+
+              {/* Default Count (စာမရိုက်ထားရင် ဒါပဲပြမယ်) */}
+              {!searchTerm && (
+                <span className="bg-slate-100 text-slate-500 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
+                  Total History: {historyList.length}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Table Section */}
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-slate-100 text-slate-500 uppercase text-[10px] font-black border-b">
@@ -153,47 +222,56 @@ const RelocationPage = ({ userRole }) => { // App.jsx မှ userRole ကို 
                   <th className="px-6 py-4 text-left">Customer</th>
                   <th className="px-6 py-4 text-left">Moved From (Old)</th>
                   <th className="px-6 py-4 text-left">GPS (Old)</th>
-                   <th className="px-6 py-4 text-left">DNSN (Old)</th>
+                  <th className="px-6 py-4 text-left">DNSN (Old)</th>
                   <th className="px-6 py-4 text-left">Remark</th>
                   <th className="px-6 py-4 text-center">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 italic">
                 {historyList.length > 0 ? historyList.map((h) => (
-                  <tr key={h.relocationId} className="hover:bg-blue-50/30">
+                  <tr key={h.relocationId} className="hover:bg-blue-50/30 transition-colors">
                     <td className="px-6 py-4 font-black text-blue-600 text-[11px]">{h.relocationDate}</td>
-                    <td className="px-6 py-4 font-bold text-slate-800">{h.customer?.name} ({h.customer?.customerId})</td>
+                    <td className="px-6 py-4 font-bold text-slate-800">
+                      {h.customer?.name} <span className="text-slate-400 text-[10px]">({h.customer?.customerId})</span>
+                    </td>
                     <td className="px-6 py-4 text-slate-600">
-                      <div className="font-bold">{h.oldQuarter?.qtrName}</div>
+                      <div className="font-bold text-slate-700">{h.oldQuarter?.qtrName}</div>
                       <div className="text-[11px] italic line-clamp-1">{h.oldAddress}</div>
                     </td>
                     <td className="px-6 py-4 text-[11px] font-mono text-slate-500">{h.oldGps || '---'}</td>
                     <td className="px-6 py-4">
-                      <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded">
+                      <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">
                         {h.oldDnsn || '---'}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-slate-500 text-xs">{h.remark || '---'}</td>
                     <td className="px-6 py-4 text-center">
-                      {/* ADMIN တစ်ဦးတည်းသာ ဖျက်ခွင့်ရှိသည် */}
                       {isAdmin ? (
-                        <button onClick={() => handleDelete(h.relocationId)} className="p-2 text-slate-300 hover:text-red-600 transition-colors">
+                        <button onClick={() => handleDelete(h.relocationId)} className="p-2 text-slate-300 hover:text-red-600 transition-all hover:scale-110">
                           <Trash2 size={18}/>
                         </button>
                       ) : (
-                        <span className="text-[9px] font-black text-slate-200 uppercase">View Only</span>
+                        <span className="text-[9px] font-black text-slate-200 uppercase tracking-tighter">View Only</span>
                       )}
                     </td>
                   </tr>
                 )) : (
-                  <tr><td colSpan="7" className="py-10 text-center text-slate-400 font-bold uppercase text-xs tracking-widest">No history records found</td></tr>
+                  <tr>
+                    <td colSpan="7" className="py-20 text-center">
+                      <div className="flex flex-col items-center gap-2">
+                        <History size={48} className="text-slate-200" />
+                        <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">No history records found</p>
+                      </div>
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>
           </div>
         </div>
       ) : (
-        <div className="max-w-4xl mx-auto bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden font-sans">
+        /* Modal Form Section */
+        <div className="max-w-4xl mx-auto bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden font-sans animate-in zoom-in-95 duration-300">
           <div className="p-8 bg-slate-900 text-white flex justify-between items-center">
              <h2 className="text-2xl font-black uppercase tracking-tight">New Relocation</h2>
              <button onClick={() => setShowForm(false)} className="p-3 hover:bg-red-500 rounded-xl transition-all shadow-lg"><X size={24}/></button>
@@ -205,12 +283,18 @@ const RelocationPage = ({ userRole }) => { // App.jsx မှ userRole ကို 
                 <Search size={16}/> 1. Identify Customer
               </div>
               <div className="flex gap-4">
-                <input type="text" className={inputStyle} placeholder="Enter Customer ID..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-                <button type="button" onClick={findCustomer} className="px-8 bg-slate-800 text-white font-black rounded-xl hover:bg-blue-600 transition-all uppercase text-xs tracking-widest">FIND</button>
+                <input 
+                  type="text" 
+                  className={inputStyle} 
+                  placeholder="Enter Customer ID to Relocate..." 
+                  value={searchTerm} 
+                  onChange={(e) => setSearchTerm(e.target.value)} 
+                />
+                <button type="button" onClick={findCustomer} className="px-8 bg-slate-800 text-white font-black rounded-xl hover:bg-blue-600 transition-all uppercase text-xs tracking-widest shadow-lg">FIND</button>
               </div>
 
               {selectedCust && (
-                <div className="animate-in fade-in duration-300 space-y-8">
+                <div className="animate-in fade-in slide-in-from-top-4 duration-500 space-y-8">
                   <div className="bg-blue-50 p-6 rounded-[2rem] border-2 border-dashed border-blue-200 flex justify-between items-center">
                     <div>
                        <div className="text-[10px] font-black text-blue-400 uppercase">Current Info (Will be stored as history)</div>
@@ -242,11 +326,11 @@ const RelocationPage = ({ userRole }) => { // App.jsx မှ userRole ကို 
                     </div>
                     <div className="md:col-span-2 flex flex-col gap-1.5">
                       <label className="text-xs font-black text-slate-700 uppercase">Complete New Address</label>
-                      <textarea className="w-full p-4 border-2 border-slate-300 rounded-2xl font-bold h-24 focus:border-blue-600 outline-none transition-all" onChange={e => setFormData({...formData, newAddress: e.target.value})} required></textarea>
+                      <textarea className="w-full p-4 border-2 border-slate-300 rounded-2xl font-bold h-24 focus:border-blue-600 outline-none transition-all shadow-inner" onChange={e => setFormData({...formData, newAddress: e.target.value})} required></textarea>
                     </div>
                     <div className="md:col-span-2 flex flex-col gap-1.5">
                       <label className="text-xs font-black text-slate-700 uppercase">Remark (Reason for Relocation)</label>
-                      <input type="text" className={inputStyle} placeholder="Reason..." onChange={e => setFormData({...formData, remark: e.target.value})} />
+                      <input type="text" className={inputStyle} placeholder="Moving for better connection..." onChange={e => setFormData({...formData, remark: e.target.value})} />
                     </div>
                   </div>
                 </div>
