@@ -81,6 +81,27 @@ const Dashboard = () => {
     } catch (err) { console.error("DNSN Click Error:", err); }
   };
 
+
+  // --- Quarter Click ---
+const handleQuarterClick = async (qtrName) => {
+  try {
+    const res = await API.get(`/customers/stats/quarter-users?quarter=${qtrName}`);
+    setStatusUserList(res.data);
+    setModalTitle(`Quarter: ${qtrName}`);
+    setIsModalOpen(true);
+  } catch (err) { console.error("Quarter Click Error:", err); }
+};
+
+// --- Package Click ---
+const handlePackageClick = async (planName) => {
+  try {
+    const res = await API.get(`/customers/stats/plan-users?plan=${planName}`);
+    setStatusUserList(res.data);
+    setModalTitle(`Plan: ${planName}`);
+    setIsModalOpen(true);
+  } catch (err) { console.error("Package Click Error:", err); }
+};
+
   const statusCards = [
     { type: 'ACTIVE', title: 'Active Users', count: summary.ACTIVE || 0, icon: <UserCheck size={24}/>, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { type: 'DISABLE', title: 'Disabled', count: summary.DISABLE || 0, icon: <UserMinus size={24}/>, color: 'text-amber-600', bg: 'bg-amber-50' },
@@ -139,7 +160,7 @@ const Dashboard = () => {
           <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2 mb-8">
             <Map size={18} className="text-indigo-600"/> Quarter Distribution
           </h3>
-          <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+          {/* <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
             {quarterStats.sort((a, b) => b.count - a.count).map((item, idx) => (
               <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-indigo-200 transition-all group">
                 <div className="flex items-center gap-4">
@@ -152,7 +173,30 @@ const Dashboard = () => {
                 </div>
               </div>
             ))}
-          </div>
+          </div> */}
+
+          <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+              {quarterStats.sort((a, b) => b.count - a.count).map((item, idx) => (
+                <div 
+                  key={idx} 
+                  // Click Event ထည့်သွင်းခြင်း
+                  onClick={() => handleQuarterClick(item.name)}
+                  // cursor-pointer နှင့် hover effect များ ထည့်သွင်းခြင်း
+                  className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-indigo-400 hover:bg-white hover:shadow-md transition-all group cursor-pointer active:scale-95"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-[10px] font-black text-slate-400 border border-slate-100 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                      {idx + 1}
+                    </div>
+                    <span className="text-sm font-black text-slate-700 tracking-tight">{item.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-black text-slate-900 leading-none">{item.count}</span>
+                    <span className="text-[10px] font-bold text-slate-300 uppercase">Users</span>
+                  </div>
+                </div>
+              ))}
+            </div>
         </div>
 
         {/* Package Pie Chart */}
@@ -160,7 +204,7 @@ const Dashboard = () => {
           <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-8 flex items-center gap-2 justify-center">
             <Wifi size={18} className="text-emerald-600"/> Package Popularity
           </h3>
-          <div className="h-[300px]">
+          {/* <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie data={planStats} innerRadius={70} outerRadius={100} paddingAngle={5} dataKey="count" nameKey="name">
@@ -170,7 +214,45 @@ const Dashboard = () => {
                 <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{fontSize: '11px', fontWeight: 'black', textTransform: 'uppercase'}} />
               </PieChart>
             </ResponsiveContainer>
-          </div>
+          </div> */}
+
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie 
+                    data={planStats} 
+                    innerRadius={70} 
+                    outerRadius={100} 
+                    paddingAngle={5} 
+                    dataKey="count" 
+                    nameKey="name"
+                    // Pie segment တစ်ခုချင်းစီကို နှိပ်လိုက်လျှင် အလုပ်လုပ်ရန်
+                    onClick={(data) => handlePackageClick(data.name)}
+                    // Hover လုပ်လျှင် လက်ပုံစံ ပေါ်စေရန်
+                    className="cursor-pointer outline-none"
+                  >
+                    {planStats.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={COLORS[index % COLORS.length]} 
+                        className="hover:opacity-80 transition-opacity outline-none"
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '15px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                  />
+                  <Legend 
+                    verticalAlign="bottom" 
+                    height={36} 
+                    iconType="circle" 
+                    wrapperStyle={{fontSize: '11px', fontWeight: '900', textTransform: 'uppercase'}} 
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+
         </div>
       </div>
 
@@ -293,9 +375,20 @@ const Dashboard = () => {
                         </td>
                         <td className="px-6 py-4 font-bold text-slate-600 text-xs">{user.quarter?.qtrName}</td>
                         <td className="px-6 py-4">
-                          <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-[9px] font-black border border-blue-100 uppercase">
+                          {/* <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-[9px] font-black border border-blue-100 uppercase">
                             {user.packagePlan?.planName}
-                          </span>
+                          </span> */}
+
+                          <div className="flex flex-col gap-1">
+                                
+                                  <span className="px-2 py-1 bg-blue-600 text-white rounded text-[9px] font-black border border-blue-700 uppercase inline-block w-fit shadow-sm">
+                                    {user.packagePlan?.planName}
+                                  </span>
+                                  
+                                  <span className="text-[10px] text-blue-500 font-black tracking-tighter ml-1">
+                                    ⚡ {user.packagePlan?.bandwidth || 'N/A'}
+                                  </span>
+                                </div>
                         </td>
                         <td className="px-6 py-4 font-mono text-xs text-slate-500 font-bold">{user.primaryPhone}</td>
                       </tr>

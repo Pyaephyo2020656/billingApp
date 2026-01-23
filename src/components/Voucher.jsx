@@ -25,48 +25,46 @@ const Voucher = ({ data, onClose }) => {
         
         {/* Header Section */}
      
-            <div className="flex justify-between items-start border-b-2 border-blue-600 pb-3 mb-4">
-  <div className="flex flex-col items-center -mt-4"> {/* -mt-4 က Logo ကို အပေါ်သို့ တိုးပေးပါသည် */}
+           <div className="flex justify-between items-start border-b-2 border-blue-600 pb-3 mb-4">
+  {/* ဒီနေရာမှာ items-center ကို items-start ပြောင်းလိုက်ရင် Logo ဘယ်ဘက် ကပ်သွားပါပြီ */}
+  <div className="flex flex-col items-start -mt-2 ml-2"> 
     <img 
       src="/Logo.png" 
       alt="Logo" 
-      className="w-28 h-28 object-contain" // w-20 မှ w-28 သို့ တိုးမြှင့်ပြီး Logo ကို ကြီးစေပါသည်
+      className="w-32 h-auto object-contain -mr-8" 
       onError={(e) => { e.target.src = "https://via.placeholder.com/120?text=TJD+LOGO"; }}
     />
     
-    {/* Logo အောက်က ကုမ္ပဏီနာမည် */}
-    <div className="text-center -mt-2"> {/* -mt-2 က စာသားနှင့် Logo ကြား အကွာအဝေးကို ကျုံ့ပေးပါသည် */}
-      <p className="text-[10px] font-black text-blue-600 uppercase tracking-tighter leading-none">
+   
+    <div className="text-center -mt-0">
+      <p className="text-[10px] font-black text-black-500 uppercase tracking-tighter leading-none">
         Tachileik Jade Dragon Company Limited
-      </p>
-      <p className="text-[7px] font-bold text-slate-500 uppercase mt-1 italic tracking-[0.2em]">
-        စိတ်ချ ယုံကြည်၊ အင်တာနက် ဆို TJD
       </p>
     </div>
   </div>
 
-  {/* ညာဘက်ခြမ်းက လိပ်စာနှင့် ဖုန်းနံပါတ် */}
   <div className="text-right text-[8px] font-bold text-slate-600 uppercase pt-2 space-y-1"> 
-  {/* space-y-1 က စာကြောင်းတစ်ခုချင်းစီကြားကို အချိုးကျ ခြားပေးပါသည် */}
-  <p className="leading-normal">ဝလ (၄၃၉)၊ ဆေခမ်းရပ်ကွက်၊ ဟောင်လိတ်၊ တာချီလိတ်မြို့။</p>
-  <p className="leading-normal">Ph: 09-677771020, 09-677774441</p>
-  <p className="leading-normal">VIBER: 09-677771020 | LINE: @TJDNET</p>
-</div>
+    
+    <p className="leading-normal">ဝလ (၄၃၉)၊ ဝမ်လုံ၊ ဆေခမ်းရပ်ကွက်၊ ဟောင်လိတ်၊ တာချီလိတ်မြို့။</p>
+    <p className="leading-normal">Ph: 09-677771020, 09-677774441, 09-677774449</p>
+    <p className="leading-normal text-slate-600"> စိတ်ချ ယုံကြည်၊ အင်တာနက် ဆို TJD</p>
+  </div>
 </div>
 
         {/* Info Section: Customer & Invoice Meta */}
         <div className="grid grid-cols-2 gap-4 mb-4 text-[10px]">
           {/* Customer Side */}
           <div className="space-y-1 border-l-2 border-blue-500 pl-3">
-             <p className="text-[8px] font-black text-blue-600 uppercase tracking-widest">Customer Information</p>
+             <p className="text-[8px] font-black text-black-600 uppercase tracking-widest">Customer Information</p>
              {/* <p className="font-bold text-slate-500 leading-none">ID: {data.customer?.customerId}</p> */}
-             <h2 className="text-sm font-black text-slate-800 uppercase leading-tight">{data.customer?.customerId}</h2>
-             <p className="font-bold text-slate-500 leading-none"> {data.customer?.name}</p>
+             <h2 className="text-sm font-black text-slate-800 uppercase leading-tight">ID {data.customer?.customerId} </h2>
+             <p className="font-bold text-black-800 leading-none"> {data.customer?.name}</p>
              
              {/* Phone, Address, GPS aligned under Name & ID */}
              <div className="pt-1 space-y-0.5 text-slate-600 font-bold">
                 <p>Phone: {data.customer?.primaryPhone} {data.customer?.secondaryPhone && `/ ${data.customer?.secondaryPhone}`}</p>
-                <p>Address: {data.customer?.address} ({data.customer?.quarter?.qtrName})</p>
+                <p>Address: {data.customer?.address} </p>
+                <p>Qtr:  {data.customer?.quarter?.qtrName}</p>
                 <p>GPS: {data.customer?.gpsCoords}</p>
              </div>
           </div>
@@ -78,7 +76,7 @@ const Voucher = ({ data, onClose }) => {
                 <p className="text-[8px] font-black text-slate-400 uppercase">installation Date: <span className="text-slate-900 ml-1 font-black">{formatDate(data.invoiceDate)}</span></p>
              </div>
              <div className="text-slate-600 font-bold uppercase text-[9px] pr-1">
-                <p>Package: <span className="text-blue-600 font-black">{data.customer?.packagePlan?.planName} ({data.customer?.packagePlan?.bandwidth})</span></p>
+                <p>Package: <span className="text-slate-900 ml-1 font-black">{data.customer?.packagePlan?.planName} ({data.customer?.packagePlan?.bandwidth})</span></p>
                 {/* <p>ONU SN: <span className="text-slate-900">{data.customer?.onuSerial}</span> | 
                 DNSN: <span className="text-slate-900">{data.customer?.dnsn}</span></p> */}
                 <p>DNSN: <span className="text-slate-900">{data.customer?.dnsn}</span></p>
@@ -102,9 +100,31 @@ const Voucher = ({ data, onClose }) => {
               {data.items?.map((item, idx) => (
                 <tr key={idx} className="font-bold">
                   <td className="px-2 py-2 text-slate-800 uppercase text-[9px]">{item.description}</td>
-                  <td className="px-2 py-2 text-slate-500 text-center text-[8px]">
+                  {/* <td className="px-2 py-2 text-red-500 text-center text-[8px]">
                     {item.periodStart ? `${formatDate(item.periodStart)} To ${formatDate(item.periodEnd)}` : '-'}
-                  </td>
+                  </td> */}
+
+                   {/* <td className="px-2 py-2 text-red-500 text-center text-[8px]">
+                    <span></span>
+                    {item.periodStart ? `${formatDate(item.periodStart)} To ${formatDate(item.periodEnd)}` : '-'}
+                  </td> */}
+                    <td className="px-2 py-2 text-center text-[8px]">
+                      {item.periodStart ? (
+                        <div className="flex items-center justify-center gap-1 font-bold">
+                        
+                          <span className="text-slate-900">{formatDate(item.periodStart)}</span>
+                          
+                         
+                          <span className="text-slate-400 font-normal">To</span>
+                          
+                          
+                          <span className="text-red-500">{formatDate(item.periodEnd)}</span>
+                        </div>
+                      ) : (
+                        <span className="text-slate-400">-</span>
+                      )}
+                    </td>
+
                   <td className="px-2 py-2 text-slate-800 text-center">{item.qty}</td>
                   <td className="px-2 py-2 text-slate-800 text-right">{item.unitPrice?.toLocaleString()}</td>
                   <td className="px-2 py-2 font-black text-slate-900 text-right">{item.amount?.toLocaleString()}</td>
@@ -115,34 +135,47 @@ const Voucher = ({ data, onClose }) => {
         </div>
 
         {/* Summary Section */}
-        <div className="border-t pt-3 space-y-1.5">
+      <div className="border-t pt-3 space-y-1.5">
+          {/* Sub Total */}
           <div className="flex justify-between text-[10px] font-bold text-slate-500 px-1">
             <span>Sub Total:</span>
-            <span>{data.subTotal?.toLocaleString()} Ks</span>
+            <span>{Number(data.subTotal || 0).toLocaleString()} Baht</span>
           </div>
-          {data.discountAmount > 0 && (
-            <div className="flex justify-between text-[10px] font-bold text-orange-600 px-1 italic">
-              <span>Extra Discount {data.remark && `(${data.remark})`}:</span>
-              <span>- {data.discountAmount?.toLocaleString()} Ks</span>
+
+          {/* Extra Discount (အမြဲပြမည် - မရှိလျှင် 0) */}
+          <div className="flex justify-between text-[10px] font-bold text-orange-600 px-1 italic">
+            <span> Discount: {data.remark && `(${data.remark})`}:</span>
+            <span>- {Number(data.discountAmount || 0).toLocaleString()} Baht</span>
+          </div>
+
+          {/* Total Amount Card */}
+          <div className="flex justify-between items-center bg-green-400 p-3 rounded-xl text-green-900 shadow-lg print:shadow-none">
+            <div className="flex flex-col">
+              <span className="text-[9px] font-black uppercase tracking-widest">Total Cash Received:</span>
+              <span className="text-[7px] font-bold opacity-70">(CT 15% Included)</span>
             </div>
-          )}
-          <div className="flex justify-between items-center bg-blue-400 p-3 rounded-xl text-white shadow-lg print:shadow-none">
-            <span className="text-[9px] font-black uppercase tracking-widest">Net Total Payable</span>
-            <span className="text-2xl font-black">{data.totalAmount?.toLocaleString()} <span className="text-[10px]">Bahts</span></span>
+            <span className="text-2xl font-black">
+              {Number(data.totalAmount || 0).toLocaleString()} <span className="text-[10px]">Bahts</span>
+            </span>
           </div>
         </div>
 
         {/* Important Notice Box */}
         <div className="mt-4 p-3 bg-red-50 border-l-4 border-red-500 rounded-lg">
+          
            <p className="text-[9px] font-bold text-red-700 leading-relaxed tracking-tight">
-              TJD NET အင်တာနက် ဝန်‌ဆောင်မှု အသုံးပြုနေသော customer သို့ ပန်ကြားချက်။ ဝန်ဆောင်မှုသက်တမ်းရက် မကုန်ဆုံးမှီ ဘေလ်ပေးဆောင်ရပါမည်၊ ဘေလ်ပေးဆောင်ရန် ၂၄ နာရီ ထက် ကျော်လွန်သွားပါက အလိုအလျောက် အင်တာနက်လိုင်း ပြတ်တောက်နိုင်ပါကြောင်း ကြိုတင်အသိပေးအပ်ပါသည်။
+              TJD NET အင်တာနက် ဝန်‌ဆောင်မှု အသုံးပြုနေသော customer သို့ ပန်ကြားချက်။ 
+           </p>
+            <p className="text-[9px] font-bold text-red-700 leading-relaxed tracking-tight">
+              ဝန်ဆောင်မှုသက်တမ်းရက် မကုန်ဆုံးမှီ ဘေလ်ပေးဆောင်ရပါမည်၊ ဘေလ်ပေးဆောင်ရန် ၂၄ နာရီ ထက် ကျော်လွန်သွားပါက အလိုအလျောက် အင်တာနက်လိုင်း ပြတ်တောက်နိုင်ပါကြောင်း ကြိုတင်အသိပေးအပ်ပါသည်။
            </p>
         </div>
 
         {/* Footer & Signature */}
         <div className="mt-8 flex justify-between items-end">
-           <div className="text-[7px] font-black text-slate-300 uppercase tracking-widest">
-              စိတ်ချ ယုံကြည်၊ အင်တာနက် ဆို TJD
+          
+           <div className="w-32 text-center border-t border-slate-300 pt-1">
+              <p className="text-[8px] font-black text-slate-400 uppercase tracking-tighter">Collector Signature</p>
            </div>
            <div className="w-32 text-center border-t border-slate-300 pt-1">
               <p className="text-[8px] font-black text-slate-400 uppercase tracking-tighter">customer Signature</p>
@@ -152,13 +185,13 @@ const Voucher = ({ data, onClose }) => {
 
      <style dangerouslySetInnerHTML={{ __html: `
   @media print {
-    /* ၁။ Browser ကို A5 size အား ကိန်းဂဏန်းဖြင့် အသေသတ်မှတ်ခြင်း */
+    
     @page {
       size: 148mm 210mm; 
       margin: 0;
     }
 
-    /* ၂။ Page အပြင်ဘက်က background တွေကို ဖျောက်ပြီး စာရွက်ဆိုဒ်ကို အသေသတ်မှတ်ခြင်း */
+   
     html, body {
       width: 148mm;
       height: 210mm;

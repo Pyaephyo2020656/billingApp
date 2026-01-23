@@ -23,31 +23,100 @@ const PackagePlan = () => {
   }, []);
 
   // 2. Plan အသစ်သိမ်းရန် သို့မဟုတ် ပြင်ရန် (Backend: POST /api/plans သို့မဟုတ် PUT /api/plans/{id})
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      if (isEditing) {
-        await API.put(`/plans/${editId}`, formData);
-        alert("Plan updated successfully!");
-      } else {
-        await API.post('/plans', formData);
-        alert("Plan created successfully!");
-      }
-      setFormData({ planName: '', bandwidth: '' });
-      setIsEditing(false);
-      setEditId(null);
-      fetchPlans();
-    } catch (err) {
-      alert("Error saving plan. Please check backend connection.");
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+  //   try {
+  //     if (isEditing) {
+  //       await API.put(`/plans/${editId}`, formData);
+  //       alert("Plan updated successfully!");
+  //     } else {
+  //       await API.post('/plans', formData);
+  //       alert("Plan created successfully!");
+  //     }
+  //     setFormData({ planName: '', bandwidth: '' });
+  //     setIsEditing(false);
+  //     setEditId(null);
+  //     fetchPlans();
+  //   } catch (err) {
+  //     alert("Error saving plan. Please check backend connection.");
+  //   }
+  // };
+
+    const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  // ၁။ Edit Mode ဖြစ်နေပြီး editId မရှိရင် ရှေ့မဆက်ခိုင်းပါနဲ့ (undefined error ကို တားဆီးရန်)
+  if (isEditing && !editId) {
+    console.error("Missing ID for update");
+    alert("Error: Plan ID is missing. Please try clicking Edit again.");
+    return;
+  }
+
+  try {
+    if (isEditing) {
+      // ၂။ PUT Request: Edit ID ပါမပါ console မှာ အရင်ပြပေးမည်
+      console.log(`Sending PUT request to: /plans/${editId}`);
+      await API.put(`/plans/${editId}`, formData);
+      alert("Plan updated successfully!");
+    } else {
+      // ၃။ POST Request: Plan အသစ်ဆောက်ခြင်း
+      await API.post('/plans', formData);
+      alert("Plan created successfully!");
     }
-  };
+
+    // ၄။ အောင်မြင်ရင် Form ကို Reset လုပ်ပြီး ဒေတာပြန်ဆွဲမည်
+    setFormData({ planName: '', bandwidth: '' });
+    setIsEditing(false);
+    setEditId(null);
+    fetchPlans();
+
+  } catch (err) {
+    // ၅။ Error တက်လာရင် console မှာ အပြည့်အစုံ ပြပေးမည်
+    console.error("Save Error Details:", err.response || err);
+    
+    const errorMsg = err.response?.data?.message || "Error saving plan. Please check backend connection.";
+    alert(errorMsg);
+  }
+};
+
+// ၆။ handleEdit ကိုလည်း id မှားမဖမ်းမိအောင် ဒီလိုလေး ပြင်ထားပါ
+const handleEdit = (plan) => {
+  // Backend Model ပေါ်မူတည်ပြီး id သို့မဟုတ် planId ကို ယူပေးပါမယ်
+  const currentId = plan.id || plan.planId;
+  
+  if (!currentId) {
+    console.error("The selected plan object does not have an ID:", plan);
+    alert("Error: Could not retrieve Plan ID.");
+    return;
+  }
+
+  setFormData({ 
+    planName: plan.planName, 
+    bandwidth: plan.bandwidth 
+  });
+  setIsEditing(true);
+  setEditId(currentId);
+  
+  // စာမျက်နှာအပေါ်ဆုံးသို့ ပြန်တင်ပေးခြင်း (Optional)
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+  
 
   // 3. Edit mode သို့ ပြောင်းရန်
-  const handleEdit = (plan) => {
-    setFormData({ planName: plan.planName, bandwidth: plan.bandwidth });
-    setIsEditing(true);
-    setEditId(plan.id);
-  };
+//   const handleEdit = (plan) => {
+//   // Console မှာ ကြည့်ပါ - id လား၊ planId လား၊ ဒါမှမဟုတ် တခြားလား
+//   console.log("Full plan object:", plan); 
+
+//   // Backend က ID ကို ဘယ်လိုနာမည်ပေးပေး အလုပ်လုပ်အောင် စစ်ပါမယ်
+//   const currentId = plan.id || plan.planId || plan.id; 
+  
+//   setFormData({ 
+//     planName: plan.planName, 
+//     bandwidth: plan.bandwidth 
+//   });
+//   setIsEditing(true);
+//   setEditId(currentId); // ဒီမှာ undefined ဖြစ်နေလို့ error တက်တာပါ
+// };
 
   // 4. Plan ဖျက်ရန် (Backend: DELETE /api/plans/{id})
   const handleDelete = async (id) => {

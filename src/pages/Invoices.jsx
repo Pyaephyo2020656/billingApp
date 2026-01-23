@@ -11,6 +11,7 @@ const Invoices = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [selectedPrintInv, setSelectedPrintInv] = useState(null);
+  const [nextExpiryDate, setNextExpiryDate] = useState('');
 
   // Form States
   const [selectedCust, setSelectedCust] = useState(null);
@@ -111,32 +112,184 @@ const Invoices = () => {
   const calculateSubTotal = () => invoiceItems.reduce((sum, item) => sum + calculateItemAmount(item), 0);
   const calculateGrandTotal = () => calculateSubTotal() - (parseFloat(discountAmount) || 0);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedCust) return alert("Please select a customer");
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+  //   if (!selectedCust) return alert("Please select a customer");
 
+  //   const payload = {
+  //     customer: selectedCust,
+  //     invoiceDate,
+  //     subTotal: calculateSubTotal(),
+  //     discountAmount: parseFloat(discountAmount),
+  //     totalAmount: calculateGrandTotal(),
+  //     status,
+  //     remark,
+  //     items: invoiceItems.map(it => ({ ...it, amount: calculateItemAmount(it) }))
+  //   };
+
+  //   try {
+  //     if (editingId) {
+  //       await API.put(`/invoices/${editingId}`, payload);
+  //     } else {
+  //       await API.post('/invoices', payload);
+  //     }
+  //     setShowForm(false);
+  //     resetForm();
+  //     fetchInvoices();
+  //   } catch (err) { alert("Error saving invoice"); }
+  // };
+
+//   const handleSubmit = async (e) => {
+//   e.preventDefault();
+//   if (!selectedCust) return alert("Please select a customer");
+
+//   // Discount တန်ဖိုးကို number ပြောင်းမယ် (မရှိရင် 0)
+//   const finalDiscount = parseFloat(discountAmount) || 0;
+//   const subTotal = calculateSubTotal();
+
+//   const payload = {
+//     customer: selectedCust,
+//     invoiceDate,
+//     subTotal: subTotal,
+//     discountAmount: finalDiscount,
+//     totalAmount: subTotal - finalDiscount, // ဒီမှာ တိုက်ရိုက်တွက်ပေးလိုက်တာ ပိုသေချာပါတယ်
+//     status,
+//     remark,
+//     items: invoiceItems.map(it => ({ 
+//       ...it, 
+//       amount: calculateItemAmount(it),
+//       // field တွေက number ဖြစ်ဖို့ သေချာအောင် လုပ်ပါ
+//       qty: parseFloat(it.qty) || 0,
+//       unitPrice: parseFloat(it.unitPrice) || 0,
+//       itemDiscount: parseFloat(it.itemDiscount) || 0
+//     }))
+//   };
+
+//   try {
+//     if (editingId) {
+//       await API.put(`/invoices/${editingId}`, payload);
+//     } else {
+//       await API.post('/invoices', payload);
+//     }
+//     // ... ကျန်တာ အရင်အတိုင်း
+//   } catch (err) { alert("Error saving invoice"); }
+// };
+
+// const handleSubmit = async (e) => {
+//   e.preventDefault();
+  
+//   // ၁။ Customer ရွေးမရွေး အရင်စစ်
+//   if (!selectedCust) return alert("Please select a customer");
+
+//   try {
+//     // ၂။ Discount တန်ဖိုးကို ရှင်းရှင်းလင်းလင်း Number ပြောင်း
+//     const finalDiscount = parseFloat(discountAmount) || 0;
+//     const subTotal = calculateSubTotal();
+
+//     // ၃။ Payload တည်ဆောက် (Data တွေကို သန့်စင်ပေးမယ်)
+//     const payload = {
+//       customer: selectedCust,
+//       invoiceDate,
+//       subTotal: subTotal,
+//       discountAmount: finalDiscount,
+//       totalAmount: subTotal - finalDiscount,
+//       status,
+//       remark,
+//       // items ထဲက ဂဏန်းတွေကို float သေချာပြောင်းပေးမယ်
+//       items: invoiceItems.map(it => ({
+//         ...it,
+//         qty: parseFloat(it.qty) || 0,
+//         unitPrice: parseFloat(it.unitPrice) || 0,
+//         itemDiscount: parseFloat(it.itemDiscount) || 0,
+//         amount: (parseFloat(it.qty || 0) * parseFloat(it.unitPrice || 0)) - parseFloat(it.itemDiscount || 0)
+//       }))
+//     };
+
+//     console.log("Saving Payload:", payload); // ဒီမှာ Console မှာ ဒေတာပါလား အရင်ကြည့်လို့ရတယ်
+
+//     if (editingId) {
+//       await API.put(`/invoices/${editingId}`, payload);
+//     } else {
+//       await API.post('/invoices', payload);
+//     }
+
+//     // ၄။ အောင်မြင်ရင် Form ပိတ်ပြီး အားလုံး Reset လုပ်
+//     setShowForm(false);
+//     resetForm();
+//     fetchInvoices();
+//     alert("Invoice saved successfully!");
+
+//   } catch (err) {
+//     console.error("Save Error:", err);
+//     alert("Error saving invoice: " + (err.response?.data?.message || err.message));
+//   }
+// };
+
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  // ၁။ Customer ရွေးမရွေး အရင်စစ် (မူရင်း logic)
+  if (!selectedCust) return alert("Please select a customer");
+
+  // ၂။ PAID ဖြစ်ခဲ့ရင် ရက်စွဲရွေးဖို့ ကျန်/မကျန် ထပ်စစ်မယ် (Logic အသစ်)
+  if (status === 'PAID' && !nextExpiryDate) {
+    return alert("Please select the next expired date for this customer.");
+  }
+
+  try {
+    // ၃။ ဂဏန်းတွေကို သန့်စင်ခြင်း (မူရင်း logic)
+    const finalDiscount = parseFloat(discountAmount) || 0;
+    const subTotal = calculateSubTotal();
+
+    // ၄။ Payload တည်ဆောက်ခြင်း
     const payload = {
       customer: selectedCust,
       invoiceDate,
-      subTotal: calculateSubTotal(),
-      discountAmount: parseFloat(discountAmount),
-      totalAmount: calculateGrandTotal(),
-      status,
+      subTotal: subTotal,
+      discountAmount: finalDiscount,
+      totalAmount: subTotal - finalDiscount,
+      status, // PAID သို့မဟုတ် UNPAID
       remark,
-      items: invoiceItems.map(it => ({ ...it, amount: calculateItemAmount(it) }))
+      
+      // --- အသစ်ထည့်ထားသော field ---
+      // status က PAID ဖြစ်မှသာ ရွေးထားတဲ့ date ကို ထည့်ပို့မယ်
+      nextExpiryDate: status === 'PAID' ? nextExpiryDate : null, 
+
+      // items ထဲက ဂဏန်းတွေကို float သေချာပြောင်းပေးမယ် (မူရင်း logic)
+      items: invoiceItems.map(it => ({
+        ...it,
+        qty: parseFloat(it.qty) || 0,
+        unitPrice: parseFloat(it.unitPrice) || 0,
+        itemDiscount: parseFloat(it.itemDiscount) || 0,
+        amount: (parseFloat(it.qty || 0) * parseFloat(it.unitPrice || 0)) - parseFloat(it.itemDiscount || 0)
+      }))
     };
 
-    try {
-      if (editingId) {
-        await API.put(`/invoices/${editingId}`, payload);
-      } else {
-        await API.post('/invoices', payload);
-      }
-      setShowForm(false);
-      resetForm();
-      fetchInvoices();
-    } catch (err) { alert("Error saving invoice"); }
-  };
+    console.log("Saving Payload with Expiry Data:", payload);
+
+    // ၅။ API ခေါ်ယူခြင်း (မူရင်း logic)
+    if (editingId) {
+      await API.put(`/invoices/${editingId}`, payload);
+    } else {
+      await API.post('/invoices', payload);
+    }
+
+    // ၆။ အောင်မြင်ရင် အားလုံး Reset လုပ်ခြင်း (မူရင်း + အသစ် logic)
+    setShowForm(false);
+    resetForm();
+    
+    // nextExpiryDate ကိုပါ Clear လုပ်ပေးမယ်
+    if (setNextExpiryDate) setNextExpiryDate(''); 
+    
+    fetchInvoices();
+    alert("Invoice saved successfully and customer expiry updated!");
+
+  } catch (err) {
+    console.error("Save Error:", err);
+    alert("Error saving invoice: " + (err.response?.data?.message || err.message));
+  }
+};
 
   return (
     <div className="p-4 text-left font-sans bg-slate-50 min-h-screen">
@@ -165,7 +318,7 @@ const Invoices = () => {
                 <tr key={inv.invoiceId} className="hover:bg-blue-50/30 transition-colors">
                   <td className="px-6 py-4 font-black text-blue-600">{inv.invoiceNo}</td>
                   <td className="px-6 py-4 font-bold text-slate-800">{inv.customer?.name}</td>
-                  <td className="px-6 py-4 font-black text-right">{inv.totalAmount?.toLocaleString()} Ks</td>
+                  <td className="px-6 py-4 font-black text-right">{inv.totalAmount?.toLocaleString()} Baht</td>
                   <td className="px-6 py-4 text-center">
                     <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${inv.status === 'PAID' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>{inv.status}</span>
                   </td>
@@ -214,7 +367,7 @@ const Invoices = () => {
                                     onChange={(e) => {
                                       const cust = customers.find(c => c.id === parseInt(e.target.value));
                                       setSelectedCust(cust);
-                                      // Price အလိုအလျောက်ဖြည့်တဲ့ logic ဖြုတ်လိုက်ပါပြီ
+                                      
                                     }} 
                                     value={selectedCust?.id || ""} 
                                     required
@@ -266,53 +419,96 @@ const Invoices = () => {
                         <div className="h-12 flex items-center justify-end text-xl font-black text-blue-600 pr-2">{calculateItemAmount(item).toLocaleString()} Ks</div>
                       </div> */}
 
-                        <div className="col-span-12 grid grid-cols-4 gap-4 pt-4 border-t border-slate-50">
-  {/* Qty Input */}
-  <input 
-    type="text" 
-    inputMode="decimal"
-    className="h-12 px-4 border-2 border-slate-50 rounded-xl font-black bg-slate-50 focus:bg-white outline-none" 
-    placeholder="Qty" 
-    value={item.qty} 
-    onChange={(e) => {
-      const val = e.target.value.replace(/[^0-9.]/g, ''); // ဂဏန်းနှင့် decimal point သာ ခွင့်ပြုခြင်း
-      handleItemChange(idx, 'qty', val);
-    }} 
-    required
-  />
+                <div className="col-span-12 grid grid-cols-4 gap-4 pt-4 border-t border-slate-50">
+                      {/* Qty Input */}
+                      {/* <input 
+                        type="text" 
+                        inputMode="decimal"
+                        className="h-12 px-4 border-2 border-slate-50 rounded-xl font-black bg-slate-50 focus:bg-white outline-none" 
+                        placeholder="Qty" 
+                        value={item.qty} 
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9.]/g, ''); // ဂဏန်းနှင့် decimal point သာ ခွင့်ပြုခြင်း
+                          handleItemChange(idx, 'qty', val);
+                        }} 
+                        required
+                      /> */}
 
-  {/* Price Input */}
-  <input 
-    type="text" 
-    inputMode="decimal"
-    className="h-12 px-4 border-2 border-slate-50 rounded-xl font-black bg-slate-50 focus:bg-white outline-none" 
-    placeholder="Price" 
-    value={item.unitPrice} 
-    onChange={(e) => {
-      const val = e.target.value.replace(/[^0-9.]/g, '');
-      handleItemChange(idx, 'unitPrice', val);
-    }} 
-    required
-  />
+                      <div className="flex flex-col gap-1.5">
+                          <label className="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-widest">Quantity</label>
+                          <input 
+                            type="text" 
+                            inputMode="decimal"
+                            className="h-12 px-4 border-2 border-slate-50 rounded-xl font-black bg-slate-50 focus:bg-white outline-none transition-all focus:border-blue-400" 
+                            placeholder="0" 
+                            value={item.qty} 
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/[^0-9.]/g, ''); 
+                              handleItemChange(idx, 'qty', val);
+                            }} 
+                            required
+                          />
+                        </div>
 
-  {/* Item Discount Input */}
-  <input 
-    type="text" 
-    inputMode="decimal"
-    className="h-12 px-4 border-2 border-slate-50 rounded-xl font-black text-orange-600 bg-slate-50 focus:bg-white outline-none" 
-    placeholder="Item Disc" 
-    value={item.itemDiscount} 
-    onChange={(e) => {
-      const val = e.target.value.replace(/[^0-9.]/g, '');
-      handleItemChange(idx, 'itemDiscount', val);
-    }}
-  />
+                      {/* Price Input */}
+                      {/* <input 
+                        type="text" 
+                        inputMode="decimal"
+                        className="h-12 px-4 border-2 border-slate-50 rounded-xl font-black bg-slate-50 focus:bg-white outline-none" 
+                        placeholder="Price" 
+                        value={item.unitPrice} 
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9.]/g, '');
+                          handleItemChange(idx, 'unitPrice', val);
+                        }} 
+                        required
+                      /> */}
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-widest">Unit Price</label>
+                            <input 
+                              type="text" 
+                              inputMode="decimal"
+                              className="h-12 px-4 border-2 border-slate-50 rounded-xl font-black bg-slate-50 focus:bg-white outline-none transition-all focus:border-blue-400" 
+                              placeholder="0" 
+                              value={item.unitPrice} 
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/[^0-9.]/g, '');
+                                handleItemChange(idx, 'unitPrice', val);
+                              }} 
+                              required
+                            />
+                          </div>
 
-  {/* Row Total Display */}
-  <div className="h-12 flex items-center justify-end text-xl font-black text-blue-600 pr-2">
-    {calculateItemAmount(item).toLocaleString()} Ks
-  </div>
-</div>
+
+
+
+
+                      {/* Item Discount Input */}
+                      {/* <input 
+                        type="text" 
+                        inputMode="decimal"
+                        className="h-12 px-4 border-2 border-slate-50 rounded-xl font-black text-orange-600 bg-slate-50 focus:bg-white outline-none" 
+                        placeholder="Item Disc" 
+                        value={item.itemDiscount} 
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9.]/g, '');
+                          handleItemChange(idx, 'itemDiscount', val);
+                        }}
+                      /> */}
+
+                      {/* Row Total Display */}
+                      {/* <div className="h-12 flex items-center justify-end text-xl font-black text-blue-600 pr-2">
+                        {calculateItemAmount(item).toLocaleString()} Ks
+                      </div> */}
+                        <div className="col-span-2 flex flex-col gap-1.5">
+                            <label className="text-[10px] font-black text-blue-400 uppercase text-right mr-2 tracking-widest">Sub-Amount</label>
+                            <div className="h-12 flex items-center justify-end text-2xl font-black text-blue-600 pr-2 italic">
+                              {calculateItemAmount(item).toLocaleString()} <span className="text-xs ml-1 font-bold text-slate-400">Baht</span>
+                            </div>
+                      </div>
+
+
+                    </div>
 
 
                     </div>
@@ -325,21 +521,65 @@ const Invoices = () => {
               <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white sticky top-6">
                 <h3 className="text-xs font-black uppercase text-slate-400 mb-8">Payment Summary</h3>
                 <div className="space-y-6">
-                  <div className="flex justify-between text-slate-400"><span>Sub Total</span><span className="text-white font-black">{calculateSubTotal().toLocaleString()} Ks</span></div>
-                  <div className="space-y-3">
+                  <div className="flex justify-between text-slate-400"><span>Sub Total</span><span className="text-white font-black">{calculateSubTotal().toLocaleString()} Baht</span></div>
+                  {/* <div className="space-y-3">
                     <label className="text-[10px] font-black text-orange-400 uppercase">Additional Discount</label>
                     <input type="number" className="w-full h-14 px-5 bg-slate-800 border-2 border-slate-700 rounded-2xl font-black text-orange-500 outline-none" value={discountAmount} onChange={(e) => setDiscountAmount(e.target.value)}/>
-                  </div>
+                  </div> */}
+                    <div className="space-y-3">
+                        <label className="text-[10px] font-black text-orange-400 uppercase">Additional Discount</label>
+                        <input 
+                          type="text" 
+                          inputMode="decimal"
+                          className="w-full h-14 px-5 bg-slate-800 border-2 border-slate-700 rounded-2xl font-black text-orange-500 outline-none" 
+                          value={discountAmount} 
+                          onChange={(e) => {
+                            // ဂဏန်းနှင့် decimal point သာ ခွင့်ပြုခြင်း
+                            const val = e.target.value.replace(/[^0-9.]/g, '');
+                            setDiscountAmount(val);
+                          }}
+                        />
+                     </div>
+
                   <div className="pt-6 border-t border-slate-800">
                     <span className="text-[10px] font-black text-slate-500 uppercase">Grand Total</span>
-                    <div className="text-4xl font-black text-white">{calculateGrandTotal().toLocaleString()} Ks</div>
+                    <div className="text-4xl font-black text-white">{calculateGrandTotal().toLocaleString()} Baht</div>
                   </div>
-                  <div className="flex gap-2">
+                  {/* <div className="flex gap-2">
                     {['UNPAID', 'PAID'].map(s => (
                       <button key={s} type="button" onClick={() => setStatus(s)} className={`flex-1 py-3 rounded-xl text-[10px] font-black ${status === s ? "bg-blue-600 text-white" : "bg-slate-800 text-slate-500"}`}>{s}</button>
                     ))}
-                  </div>
-                  <button type="submit" className="w-full py-5 bg-blue-600 text-white rounded-[1.5rem] font-black uppercase shadow-2xl">SAVE INVOICE</button>
+                  </div> */}
+
+                  <div className="flex gap-2">
+  {['UNPAID', 'PAID'].map(s => (
+    <button 
+      key={s} 
+      type="button" 
+      onClick={() => setStatus(s)} 
+      className={`flex-1 py-3 rounded-xl text-[10px] font-black ${status === s ? "bg-blue-600 text-white" : "bg-slate-800 text-slate-500"}`}
+    >
+      {s}
+    </button>
+  ))}
+</div>
+
+
+                        {status === 'PAID' && (
+                          <div className="mt-4 p-4 bg-slate-800 rounded-2xl border border-emerald-500/50 space-y-2 animate-in fade-in zoom-in duration-200">
+                            <label className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">
+                              Next Expiry Date (တိုးပေးမည့် ရက်စွဲ)
+                            </label>
+                            <input 
+                              type="date" 
+                              className="w-full h-12 px-4 bg-slate-900 border border-slate-700 rounded-xl font-bold text-white text-sm outline-none focus:border-emerald-500 transition-all"
+                              value={nextExpiryDate}
+                              onChange={(e) => setNextExpiryDate(e.target.value)}
+                              required={status === 'PAID'}
+                            />
+                          </div>
+                        )}
+                                          <button type="submit" className="w-full py-5 bg-blue-600 text-white rounded-[1.5rem] font-black uppercase shadow-2xl">SAVE INVOICE</button>
                 </div>
               </div>
               <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm space-y-3">

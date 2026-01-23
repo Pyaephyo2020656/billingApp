@@ -58,6 +58,7 @@ const CustomerList = ({ userRole }) => { // App.jsx မှ userRole ကို �
   const [selectedCustomerForStatus, setSelectedCustomerForStatus] = useState(null);
   const [newStatus, setNewStatus] = useState('');
   const [statusRemark, setStatusRemark] = useState('');
+  const [statusDate, setStatusDate] = useState(new Date().toISOString().split('T')[0]);
 
   useEffect(() => { fetchData(); }, []);
 
@@ -79,7 +80,8 @@ const CustomerList = ({ userRole }) => { // App.jsx မှ userRole ကို �
       await API.put(`/customers/${selectedCustomerForStatus.id}/status`, null, {
         params: { 
           newStatus: newStatus,
-          remark: statusRemark 
+          remark: statusRemark ,
+          statusDate: statusDate
         }
       });
       alert("Status Updated & Logged Successfully!");
@@ -468,6 +470,16 @@ const CustomerList = ({ userRole }) => { // App.jsx မှ userRole ကို �
                   <option value="DISABLE">DISABLE</option>
                   <option value="TERMINATION">TERMINATION</option>
                 </select>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Effective Date (အကျိုးသက်ရောက်မည့်ရက်)</label>
+                      <input 
+                        type="date"
+                        className={inputStyle} // အရင်သုံးထားတဲ့ style အတိုင်းပဲ သုံးလို့ရပါတယ်
+                        value={statusDate}
+                        onChange={e => setStatusDate(e.target.value)}
+                        required
+                      />
+                </div>
               </div>
               <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Reason / Remark</label>
